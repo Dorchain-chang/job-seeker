@@ -1,0 +1,6 @@
+# 行尾规范化：跨平台部署的脚本必须锁定行尾，否则会出「换个系统就跑不起来」的怪问题。
+# 本机 core.autocrlf=true，若不锁定，scripts/*.sh 在工作区会是 CRLF，
+# 拷到 Linux 服务器会报 bad interpreter: /usr/bin/env bash^M。
+# 只锁这两类脚本，不对全仓库做宽泛 renormalize（避免无谓的 diff 噪声）。
+*.sh  text eol=lf
+*.bat text eol=crlf
