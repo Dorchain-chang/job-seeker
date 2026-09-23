@@ -135,7 +135,6 @@ section{background:var(--card);border:1px solid var(--line);border-radius:var(--
 section>h2{font-size:15px;display:flex;align-items:center;gap:9px;margin-bottom:13px;font-weight:600;letter-spacing:-.01em}
 section>h2 svg{width:27px;height:27px;flex:none;background:#eef1f5;border-radius:0;padding:6px;stroke:var(--sub)}
 section>h2 .cnt{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--sub);font-weight:500;background:#eef1f5;border-radius:0;padding:2px 9px}
-#todayList{display:flex;flex-direction:column;gap:8px}
 .titem{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:3px;background:#fff;border:1px solid var(--line);flex-wrap:wrap;transition:border-color .15s,box-shadow .15s}
 .titem:hover{border-color:#b9c4d4;box-shadow:none}
 .titem.red{box-shadow:inset 4px 0 0 var(--red)}
@@ -349,6 +348,103 @@ label.fl{display:block;margin:6px 0 0}
 .qintel{display:flex;gap:8px;margin-bottom:10px}
 .qintel input{flex:1;height:40px;border:1px solid var(--line);border-radius:3px;padding:0 12px;font-size:14px;font-family:inherit;background:#fff;min-width:0}
 .qintel input:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-soft)}
+/* ---------- v47：全屏铺满（壳宽随视口分级，宽屏自动多列） ---------- */
+:root{--shell:1100px}
+@media (min-width:1280px){:root{--shell:1400px}}
+@media (min-width:1600px){:root{--shell:1680px}}
+@media (min-width:1900px){:root{--shell:1820px}}
+.wrap,nav.tabbar .inner,.hero{max-width:var(--shell)}
+.stats{grid-template-columns:repeat(auto-fit,minmax(178px,1fr))}
+.moduleCards{grid-template-columns:repeat(auto-fit,minmax(268px,1fr))}
+@media (min-width:1320px){
+  .cards{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:12px}
+}
+@media (min-width:1900px){.cards{grid-template-columns:repeat(3,1fr)}}
+/* ---- 个人知识库：步骤示意 / 语料概览 / 示例问题 ---- */
+.ragsec .rachint{margin:0 0 11px;font-size:12px;color:var(--sub);line-height:1.75}
+.ragsteps{display:flex;flex-wrap:wrap;margin:0 0 12px;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:#fff}
+.ragstep{flex:1;min-width:172px;padding:10px 12px;position:relative;background:#fff}
+.ragstep+.ragstep{border-left:1px solid var(--line)}
+.ragstep b{display:block;font-size:12.5px;color:var(--txt);margin-bottom:2px;padding-right:22px}
+.ragstep span{display:block;font-size:11.5px;color:var(--sub);line-height:1.55}
+.ragstep .rn{position:absolute;top:9px;right:10px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--pri)}
+.ragwrap{display:grid;grid-template-columns:1.45fr 1fr;gap:13px;align-items:start}
+@media (max-width:1180px){.ragwrap{grid-template-columns:1fr}}
+.ragmain,.ragside{min-width:0}
+.ragside{display:flex;flex-direction:column;gap:12px}
+.ragbox{border:1px solid var(--line);border-radius:3px;background:#fbfcfe;padding:12px 13px}
+.ragbox>h4{font-size:12px;font-weight:700;color:var(--txt);display:flex;align-items:center;gap:8px;margin:0 0 9px;letter-spacing:-.01em}
+.ragbox>h4 .cnt{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--sub);font-weight:500}
+.ragcats{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:7px}
+.ragcat{border:1px solid var(--line);border-radius:3px;background:#fff;padding:8px 10px;position:relative;overflow:hidden}
+.ragcat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--pri)}
+.ragcat.c2::before{background:#7c3aed}
+.ragcat.c3::before{background:var(--green)}
+.ragcat.c4::before{background:var(--orange)}
+.ragcat.c5::before{background:#0891b2}
+.ragcat b{display:block;font-size:19px;font-weight:600;line-height:1.18;font-variant-numeric:tabular-nums}
+.ragcat span{font-size:11.5px;color:var(--sub)}
+.ragcat.zero{opacity:.45}
+.ragqgroup+.ragqgroup{margin-top:9px}
+.ragqgroup .qt{font-size:11px;font-weight:600;color:var(--sub);letter-spacing:.4px;margin-bottom:5px}
+.ragqgroup .qs{display:flex;flex-direction:column;gap:5px}
+.ragqg{display:block;width:100%;text-align:left;white-space:normal;line-height:1.5;min-height:0;padding:7px 10px;border:1px solid var(--line);border-radius:0;background:#fff;color:var(--txt);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit}
+.ragqg:hover{border-color:var(--pri);background:var(--pri-soft);color:var(--pri)}
+.ragempty{border:1px dashed #c2d0ea;background:#f5f8ff;border-radius:3px;padding:11px 13px;font-size:12px;color:var(--sub);line-height:1.75;margin-top:9px}
+.ragempty .rt{font-weight:600;color:var(--txt);display:block;margin-bottom:4px;font-size:12.5px}
+.ragempty ol{margin:0;padding-left:18px}
+.ragempty li{margin:2px 0}
+.ragempty code{font-family:var(--mono);font-size:11.5px;background:#fff;border:1px solid var(--line);padding:0 5px}
+/* ---- 定时任务：统计条 / 快速模板 / 分组 ---- */
+.taskstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;margin:0 0 12px}
+.taskstat{border:1px solid var(--line);border-radius:3px;background:#fff;padding:9px 12px;position:relative;overflow:hidden}
+.taskstat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line)}
+.taskstat b{display:block;font-size:19px;font-weight:600;line-height:1.18;font-variant-numeric:tabular-nums}
+.taskstat span{font-size:11.5px;color:var(--sub)}
+.taskstat.today::before{background:var(--pri)}
+.taskstat.today b{color:var(--pri)}
+.taskstat.over::before{background:var(--red)}
+.taskstat.over b{color:var(--red)}
+.taskstat.done::before{background:var(--green)}
+.taskstat.done b{color:var(--green)}
+.taskform{border:1px solid var(--line);border-radius:3px;background:#fbfcfe;padding:12px 13px;margin-bottom:13px}
+.taskform .formrow{margin-bottom:8px}
+.tasktpl{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 10px;align-items:center}
+.tasktpl .tl{font-size:11px;color:var(--sub);margin-right:2px}
+.tasktpl .tt{font-size:12px;padding:5px 11px;border:1px solid var(--line);border-radius:0;background:#fff;color:var(--sub);cursor:pointer;font-family:inherit;font-weight:500}
+.tasktpl .tt:hover{border-color:var(--pri);color:var(--pri);background:var(--pri-soft)}
+.taskbtns{display:flex;gap:8px;flex-wrap:wrap}
+.tgroup{margin-bottom:13px}
+.tgroup:last-child{margin-bottom:0}
+.tgroup>h4{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.6px;margin:0 0 7px;display:flex;align-items:center;gap:9px}
+.tgroup>h4::after{content:'';flex:1;height:1px;background:var(--line)}
+.tgroup>h4 .n{font-family:var(--mono);color:var(--txt)}
+.tlist{display:flex;flex-direction:column;gap:8px}
+.tlist .taskrow{margin-bottom:0}
+.taskrow .tkwhen{font-family:var(--mono);font-size:11.5px;color:var(--sub);flex:none}
+.tasktpl-empty{border:1px dashed #c2d0ea;background:#f5f8ff;border-radius:3px;padding:11px 13px;font-size:12px;color:var(--sub);line-height:1.8}
+.tasktpl-empty b{color:var(--txt)}
+.tasktpl-empty .sug{display:inline-block;margin:3px 6px 0 0;padding:3px 9px;background:#fff;border:1px solid var(--line);font-size:11.5px;color:var(--txt)}
+/* ---- 求职助理：对话区拉高 + 侧栏「能做什么 / 示例问题」 ---- */
+.agchat{min-height:min(46vh,420px);max-height:min(64vh,640px)}
+.agwrap{display:grid;grid-template-columns:1.6fr 1fr;gap:13px;align-items:start}
+@media (max-width:1180px){.agwrap{grid-template-columns:1fr}}
+.agmain,.agside{min-width:0}
+.agside{display:flex;flex-direction:column;gap:12px}
+.agcap{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:3px;background:#fff;padding:7px 9px;margin-bottom:5px}
+.agcap:last-child{margin-bottom:0}
+.agcap i{font-family:var(--mono);font-size:10.5px;color:var(--pri);font-style:normal;font-weight:700;flex:none;padding-top:1px}
+.agcap b{display:block;font-size:12px;color:var(--txt);font-weight:600}
+.agcap span{font-size:11.5px;color:var(--sub);line-height:1.45}
+.agqg{display:block;width:100%;text-align:left;white-space:normal;line-height:1.5;min-height:0;padding:7px 10px;margin-bottom:5px;border:1px solid var(--line);border-radius:0;background:#fff;color:var(--txt);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit}
+.agqg:last-child{margin-bottom:0}
+.agqg:hover{border-color:var(--pri);background:var(--pri-soft);color:var(--pri)}
+/* 宽屏把「行列表」也铺成两栏 —— 必须放在各自 display 基础规则之后，否则被源序更后的基础规则覆盖成死代码。
+   注意别用 #todayList 这类 ID 选择器：合并版里 ID 会被加 ov_/at_/so_/ir_ 前缀，ID 选择器会直接失配成死规则。 */
+@media (min-width:1320px){
+  .tlist,#schedList{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:8px}
+  #schedList .schrow{margin-bottom:0}
+}
 /* ---------- 弹层 ---------- */
 #lnkModal .lnk-card{background:#fff;border-radius:3px;max-width:520px;width:100%;padding:20px;box-shadow:0 24px 60px rgba(15,23,42,.25);animation:pop .18s ease}
 @keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
@@ -432,7 +528,7 @@ nav.tabbar .tab{cursor:pointer;font-family:inherit}
   <h2><svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>今天要处理<span class="cnt" id="ov_todayCnt"></span></h2>
   <label class="legend"><input type="checkbox" id="ov_todayMine" checked style="min-height:0;margin:0">只看 AI/计算机相关 · 北京/成都/天津（关掉看全部）</label>
   <div class="jmeta" style="margin:-2px 0 9px">每条可操作：<b>直达官网</b>／<b>搜网申入口</b> 去投递 ｜ <b>公司情报</b> 先看面经·评价·工商背景 ｜ <b>标记已投 / 节点已完成</b> 推进并记进投递跟踪 ｜ <b>不投了 / 去掉这条</b> 移出今日列表</div>
-  <div id="ov_todayList"><div class="empty">加载中…</div></div>
+  <div id="ov_todayList" class="tlist"><div class="empty">加载中…</div></div>
 </section>
 
 <section>
@@ -449,20 +545,75 @@ nav.tabbar .tab{cursor:pointer;font-family:inherit}
 <div id="secRag" style="display:none">
 <section class="ragsec">
   <h2><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4-4"/><path d="M7.5 10.5h6M10.5 7.5v6"/></svg>知识库问答（本地 RAG）<span class="cnt ragcnt" style="font-weight:500;font-size:12px"></span></h2>
-  <p style="margin:0 0 10px;font-size:12px;color:var(--sub)">把本机资料当语料库：岗位（含贴过的 JD 正文）· 投递记录与复盘笔记 · 简历档案。BM25 检索挑出相关片段，再交给模型<b>只依据这些资料</b>作答并用【序号】标注出处，点序号可回看原文 · 检索与排序全在你本机完成，只把命中的片段发给模型 · 未配置 Key 时只跑检索、不做生成</p>
-  <div class="raginput">
-    <input class="ragq" placeholder="问一句，例如：哪些岗位要求 RAG / 知识图谱？">
-    <button type="button" class="btn btn-pri btn-sm ragask">检索并回答</button>
+  <p class="rachint">把本机资料当语料库：岗位（含贴过的 JD 正文）· 投递记录与复盘笔记 · 简历档案。BM25 检索挑出相关片段，再交给模型<b>只依据这些资料</b>作答并用【序号】标注出处，点序号可回看原文 · 检索与排序全在你本机完成，只把命中的片段发给模型 · 未配置 Key 时只跑检索、不做生成</p>
+  <div class="ragsteps">
+    <div class="ragstep"><span class="rn">01</span><b>本机 BM25 检索</b><span>把问题切词后在本机语料里打分排序，不上传原始资料</span></div>
+    <div class="ragstep"><span class="rn">02</span><b>只取命中片段</b><span>取相关度最高的 6 条；一条都没命中就直接拒答，不硬编</span></div>
+    <div class="ragstep"><span class="rn">03</span><b>引用式作答</b><span>模型只用片段回答并标【序号】，点序号回看原文，方便核对</span></div>
   </div>
-  <div class="ragchips">
-    <button type="button" class="schip ragchip">哪些岗位要求 RAG / 知识图谱？</button>
-    <button type="button" class="schip ragchip">我投递过的哪些公司进面试了？</button>
-    <button type="button" class="schip ragchip">我的简历里有哪些大模型相关经历？</button>
-    <button type="button" class="schip ragchip">7 天内截止的大模型岗位有哪些？</button>
+  <div class="ragwrap">
+    <div class="ragmain">
+      <div class="raginput">
+        <input class="ragq" placeholder="问一句，例如：哪些岗位要求 RAG / 知识图谱？">
+        <button type="button" class="btn btn-pri btn-sm ragask">检索并回答</button>
+      </div>
+      <div class="ragchips">
+        <button type="button" class="schip ragchip">哪些岗位要求 RAG / 知识图谱？</button>
+        <button type="button" class="schip ragchip">我投递过的哪些公司进面试了？</button>
+        <button type="button" class="schip ragchip">我的简历里有哪些大模型相关经历？</button>
+      </div>
+      <div class="ragstat">语料加载中…</div>
+      <div class="ragout" style="display:none"></div>
+      <div class="ragsrcs" style="display:none"></div>
+      <div class="ragbox" style="margin-top:12px">
+        <h4>回答长什么样</h4>
+        <p class="rachint" style="margin:0">结论分点给出，每条后面跟一个【序号】角标；点角标会滚到下面列出的对应原文片段，方便逐条核对模型有没有编。<br>没配 Key 时只列出命中片段、不做生成；一条都没命中会直接回「资料里没有提到」，不会硬编。</p>
+      </div>
+    </div>
+    <div class="ragside">
+      <div class="ragbox">
+        <h4>语料库概览<span class="cnt ragcatcnt"></span></h4>
+        <div class="ragcats ragcatbox">
+          <div class="ragcat" data-src="岗位"><b>-</b><span>岗位（含 JD）</span></div>
+          <div class="ragcat c2" data-src="实习"><b>-</b><span>实习通道</span></div>
+          <div class="ragcat c3" data-src="投递"><b>-</b><span>投递与节点</span></div>
+          <div class="ragcat c4" data-src="简历"><b>-</b><span>简历档案</span></div>
+          <div class="ragcat c5" data-src="复盘"><b>-</b><span>面试复盘</span></div>
+        </div>
+        <div class="ragempty ragcatempty" hidden>
+          <span class="rt">语料还是空的 —— 三种方式喂给它</span>
+          <ol>
+            <li>到「秋招岗位 / 央国企 / 实习直通」把想投的岗位点开，贴一段 <code>JD 正文</code></li>
+            <li>到「个人中心 → 简历档案」保存一份简历（支持 Word / PDF 抽取）</li>
+            <li>到「投递记录」补 1 条投递，或写一次「AI 复盘」</li>
+          </ol>
+        </div>
+      </div>
+      <div class="ragbox">
+        <h4>示例问题 · 点一下直接问</h4>
+        <div class="ragqlist">
+          <div class="ragqgroup"><div class="qt">岗位检索</div><div class="qs">
+            <button type="button" class="schip ragchip ragqg">哪些岗位要求 RAG / 知识图谱？</button>
+            <button type="button" class="schip ragchip ragqg">7 天内截止的大模型岗位有哪些？</button>
+            <button type="button" class="schip ragchip ragqg">成都的算法岗要求里常出现哪些技术栈？</button>
+          </div></div>
+          <div class="ragqgroup"><div class="qt">投递进度</div><div class="qs">
+            <button type="button" class="schip ragchip ragqg">我投递过的哪些公司进面试了？</button>
+            <button type="button" class="schip ragchip ragqg">哪些公司还在等结果、下次节点是什么时候？</button>
+            <button type="button" class="schip ragchip ragqg">我面过的公司，复盘里暴露了哪些共性短板？</button>
+          </div></div>
+          <div class="ragqgroup"><div class="qt">简历素材</div><div class="qs">
+            <button type="button" class="schip ragchip ragqg">我的简历里有哪些大模型相关经历？</button>
+            <button type="button" class="schip ragchip ragqg">简历里的项目可以对应到哪些岗位要求？</button>
+          </div></div>
+        </div>
+      </div>
+      <div class="ragbox">
+        <h4>能问什么 · 不能问什么</h4>
+        <p class="rachint" style="margin:0"><b>能问</b>：岗位要求 / 截止时间 / 薪资 / 地点、你的投递阶段与下次节点、简历里的经历、复盘里的问答。<br><b>不能问</b>：语料里没写过的东西一律回答「资料里没有提到」，不会去网上瞎补；未配置 Key 时只返回检索片段，不做生成。</p>
+      </div>
+    </div>
   </div>
-  <div class="ragstat">语料加载中…</div>
-  <div class="ragout" style="display:none"></div>
-  <div class="ragsrcs" style="display:none"></div>
 </section>
 </div>
 
@@ -625,29 +776,70 @@ nav.tabbar .tab{cursor:pointer;font-family:inherit}
 </section>
 <section id="secTasks" style="display:none">
   <h2><svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l2 2"/><circle cx="12" cy="12" r="9"/></svg>定时任务<span class="cnt" id="taskCnt"></span></h2>
-  <p style="margin:0 0 10px;font-size:12px;color:var(--sub)">给自己定的死线：到期的任务会自动浮出在「今日提醒」 · 存本机浏览器，零云端依赖 · 开启桌面提醒后，页面开着时每分钟检查，到期弹系统通知（关掉网页收不到通知，但任务仍会出现在下次打开的「今日提醒」里）</p>
-  <div class="formrow">
-    <div><label class="fl">任务内容</label><input id="taskTitle" placeholder="如：9 月 25 日前投完字节网申"></div>
-    <div><label class="fl">应完成日期</label><input id="taskDate" type="date"></div>
+  <p class="rachint">给自己定的死线：到期的任务会自动浮出在「今日提醒」 · 存本机浏览器，零云端依赖 · 开启桌面提醒后，页面开着时每分钟检查，到期弹系统通知（关掉网页收不到通知，但任务仍会出现在下次打开的「今日提醒」里）</p>
+  <div class="taskstats">
+    <div class="taskstat"><b class="tkAll">0</b><span>全部任务</span></div>
+    <div class="taskstat today"><b class="tkToday">0</b><span>今天到期</span></div>
+    <div class="taskstat over"><b class="tkOver">0</b><span>已逾期</span></div>
+    <div class="taskstat done"><b class="tkDone">0</b><span>已完成</span></div>
   </div>
-  <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-    <button type="button" class="btn btn-pri" id="taskAdd">添加任务</button>
-    <button type="button" class="btn btn-gray" id="remArm">开启桌面提醒</button>
+  <div class="taskform">
+    <div class="formrow">
+      <div><label class="fl">任务内容</label><input id="taskTitle" placeholder="如：9 月 25 日前投完字节网申"></div>
+      <div><label class="fl">应完成日期</label><input id="taskDate" type="date"></div>
+    </div>
+    <div class="tasktpl">
+      <span class="tl">快速模板（点一下填进上面的输入框，日期自动按天数算）</span>
+      <button type="button" class="tt" data-tpl="投完 ___ 的网申（岗位 + 官网链接）" data-days="2">网申截止</button>
+      <button type="button" class="tt" data-tpl="准备 ___ 的面试：过一遍项目细节与 KG-RAG 检索链路" data-days="1">面试准备</button>
+      <button type="button" class="tt" data-tpl="参加 ___ 的笔试（提前 30 分钟调试设备与网络）" data-days="1">笔试时间</button>
+      <button type="button" class="tt" data-tpl="按 ___ 的 JD 改一版简历并投出" data-days="2">改简历投递</button>
+      <button type="button" class="tt" data-tpl="给 ___ 的 HR 发一条进度跟进" data-days="3">跟进 HR</button>
+      <button type="button" class="tt" data-tpl="给 ___ 的面试官写一封感谢信" data-days="1">写感谢信</button>
+    </div>
+    <div class="taskbtns">
+      <button type="button" class="btn btn-pri" id="taskAdd">添加任务</button>
+      <button type="button" class="btn btn-gray" id="remArm">开启桌面提醒</button>
+    </div>
   </div>
-  <div id="taskList" style="margin-top:12px"></div>
+  <div id="taskList"></div>
 </section>
 <section id="secAgent" style="display:none">
   <h2><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/></svg>求职助理<span class="cnt" id="agChatCnt" style="font-weight:500;font-size:12px"></span></h2>
-  <p style="margin:0 0 10px;font-size:12px;color:var(--sub)">多轮对话：提问时先在本机资料库做 BM25 检索，命中的片段作为上下文交给模型（回答带【序号】出处）；没命中就按求职常识回答 · 未配置 Key 时为演示输出 · 会话存本机（最近 60 条）</p>
-  <div class="agchat" id="agChatLog"></div>
-  <div class="agchips">
-    <button type="button" class="btn btn-gray btn-sm agchip" data-act="today">今天我该做什么</button>
-    <button type="button" class="btn btn-gray btn-sm agchip" data-act="rag">问知识库</button>
-    <button type="button" class="btn btn-gray btn-sm agchip" data-act="mail">解析一封邮件</button>
-  </div>
-  <div class="raginput">
-    <input id="agChatIn" placeholder="问我任何求职问题，例如：我该怎么安排下周的投递节奏？">
-    <button type="button" class="btn btn-pri btn-sm" id="agChatSend">发送</button>
+  <p class="rachint">多轮对话：提问时先在本机资料库做 BM25 检索，命中的片段作为上下文交给模型（回答带【序号】出处）；没命中就按求职常识回答 · 未配置 Key 时为演示输出 · 会话存本机（最近 60 条）</p>
+  <div class="agwrap">
+    <div class="agmain">
+      <div class="agchat" id="agChatLog"></div>
+      <div class="agchips">
+        <button type="button" class="btn btn-gray btn-sm agchip" data-act="today">今天我该做什么</button>
+        <button type="button" class="btn btn-gray btn-sm agchip" data-act="rag">问知识库</button>
+        <button type="button" class="btn btn-gray btn-sm agchip" data-act="mail">解析一封邮件</button>
+      </div>
+      <div class="raginput">
+        <input id="agChatIn" placeholder="问我任何求职问题，例如：我该怎么安排下周的投递节奏？">
+        <button type="button" class="btn btn-pri btn-sm" id="agChatSend">发送</button>
+      </div>
+    </div>
+    <div class="agside">
+      <div class="ragbox">
+        <h4>它能做什么</h4>
+        <div class="agcap"><i>01</i><div><b>今日作战清单</b><span>按投递进度、截止与到期任务排出今天最该做的 3 件事</span></div></div>
+        <div class="agcap"><i>02</i><div><b>资料库问答</b><span>先本机 BM25 检索你的岗位 / 投递 / 简历，再带【序号】引用作答</span></div></div>
+        <div class="agcap"><i>03</i><div><b>岗位匹配点评</b><span>对着某份 JD 说你缺什么、简历该怎么改</span></div></div>
+        <div class="agcap"><i>04</i><div><b>面试复盘追问</b><span>把面试记录丢进来，让它追问薄弱点并给准备清单</span></div></div>
+        <div class="agcap"><i>05</i><div><b>邮件事件解析</b><span>粘贴笔试 / 面试通知，抽取公司、类型、事项时间</span></div></div>
+        <div class="agcap"><i>06</i><div><b>投递节奏建议</b><span>结合在投数量与时间线，给下一步的投递与跟进节奏</span></div></div>
+      </div>
+      <div class="ragbox">
+        <h4>示例问题 · 点一下直接发</h4>
+        <button type="button" class="agqg">今天我该做什么？</button>
+        <button type="button" class="agqg">我投的大模型岗里，哪些要求 RAG / 知识图谱？</button>
+        <button type="button" class="agqg">帮我排一份下周的面试准备清单</button>
+        <button type="button" class="agqg">我面过的公司复盘里有哪些共性短板？</button>
+        <button type="button" class="agqg">按字节这个 JD，我的简历哪几段该重写？</button>
+        <button type="button" class="agqg">这周该优先跟进哪几家？</button>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -2364,8 +2556,16 @@ function ragPanelHtml(){
    +'<div class="raginput"><input class="ragq" placeholder="问一句，例如：哪些岗位要求 RAG / 知识图谱？"><button type="button" class="btn btn-pri btn-sm ragask">检索并回答</button></div>'
    +'<div class="ragchips">'
    +'<button type="button" class="schip ragchip">哪些岗位要求 RAG / 知识图谱？</button>'
-   +'<button type="button" class="schip ragchip">哪些岗位 7 天内截止？</button>'
+   +'<button type="button" class="schip ragchip">7 天内截止的大模型岗位有哪些？</button>'
    +'<button type="button" class="schip ragchip">我投递过的哪些公司进面试了？</button>'
+   +'<button type="button" class="schip ragchip">我的简历里有哪些大模型相关经历？</button>'
+   +'</div>'
+   +'<div class="ragcats ragcatbox" style="margin:0 0 9px">'
+   +'<div class="ragcat" data-src="岗位"><b>-</b><span>岗位（含 JD）</span></div>'
+   +'<div class="ragcat c2" data-src="实习"><b>-</b><span>实习通道</span></div>'
+   +'<div class="ragcat c3" data-src="投递"><b>-</b><span>投递与节点</span></div>'
+   +'<div class="ragcat c4" data-src="简历"><b>-</b><span>简历档案</span></div>'
+   +'<div class="ragcat c5" data-src="复盘"><b>-</b><span>面试复盘</span></div>'
    +'</div>'
    +'<div class="ragstat">语料：本机岗位（含贴过的 JD 正文）+ 投递记录与复盘 + 简历档案</div>'
    +'<div class="ragout" style="display:none"></div>'
@@ -2384,6 +2584,7 @@ function ragOpen(){
   var sc=m.querySelector('.mtcard');
   var inp=sc?sc.querySelector('.ragq'):null;
   if(inp)setTimeout(function(){try{inp.focus()}catch(e){}},60);
+  if(window.ragStatRefresh)window.ragStatRefresh();
   return sc;
 }
 document.addEventListener('click',function(e){
@@ -2417,13 +2618,28 @@ document.addEventListener('keydown',function(e){
 window.ragAsk=ragAsk;window.ragCorpus=ragCorpus;window.ragIndex=ragIndex;window.ragSearch=ragSearch;
 /* 语料概览：进「个人知识库」时刷新计数与状态行（修复空白观感） */
 function ragStatRefresh(){
-  var docs=ragCorpus(),cnt=ragCount(docs);
+  var docs=ragCorpus(),cnt=ragCount(docs),i,j;
+  var boxes=document.querySelectorAll('.ragcatbox');
+  for(i=0;i<boxes.length;i++){
+    var tiles=boxes[i].querySelectorAll('[data-src]');
+    for(j=0;j<tiles.length;j++){
+      var n=cnt[tiles[j].getAttribute('data-src')]||0;
+      var bb=tiles[j].querySelector('b');
+      if(bb)bb.textContent=String(n);
+      tiles[j].classList[n?'remove':'add']('zero');
+    }
+    var par=boxes[i].parentNode,ec=par?par.querySelector('.ragcatempty'):null;
+    if(ec){if(docs.length)ec.setAttribute('hidden','hidden');else ec.removeAttribute('hidden')}
+  }
   var e=document.querySelector('#secRag .ragcnt');
   if(e)e.textContent='语料 '+docs.length+' 条';
-  var st=document.querySelector('#secRag .ragstat');
-  if(st)st.textContent=docs.length
+  var cc=document.querySelector('#secRag .ragcatcnt');
+  if(cc)cc.textContent=docs.length?(docs.length+' 条 · '+ragCountStr(cnt)):'0 条';
+  var txt=docs.length
     ?('语料就绪：'+ragCountStr(cnt)+' · 输入问题开始检索，命中后模型只依据片段作答')
     :'本机还没有可用语料：先在岗位页贴几份 JD、在「简历档案」存一份简历，或补一条投递记录';
+  var sts=document.querySelectorAll('.ragstat');
+  for(i=0;i<sts.length;i++)sts[i].textContent=txt;
 }
 window.ragTok=ragTok;window.ragLocal=ragLocal;window.ragFmt=ragFmt;window.ragOpen=ragOpen;window.ragScopeOf=ragScopeOf;window.ragStatRefresh=ragStatRefresh;
 
@@ -2479,6 +2695,17 @@ document.addEventListener('click',function(e){
   if(t.id==='remArm'){remArm(t);return}
   if(t.id==='ibRawBtn'){ibRawParse();return}
   if(t.id==='ibRawClr'){var ta=document.getElementById('ibRaw');if(ta)ta.value='';var tp=document.getElementById('ibRawTip');if(tp){tp.style.display='none';tp.textContent=''}return}
+  var tpl=t.closest('.tasktpl .tt');
+  if(tpl){
+    var tti=document.getElementById('taskTitle'),ttd=document.getElementById('taskDate');
+    if(tti){tti.value=tpl.getAttribute('data-tpl')||'';try{tti.focus()}catch(e5){}}
+    if(ttd){
+      var ttn=Number(tpl.getAttribute('data-days'))||0,dd=new Date();
+      dd.setDate(dd.getDate()+ttn);
+      ttd.value=dd.getFullYear()+'-'+('0'+(dd.getMonth()+1)).slice(-2)+'-'+('0'+dd.getDate()).slice(-2);
+    }
+    return;
+  }
   var tk=t.closest('.taskdone');if(tk){taskMark(tk.getAttribute('data-id'),1);return}
   var tu=t.closest('.taskundo');if(tu){taskMark(tu.getAttribute('data-id'),0);return}
   var tx=t.closest('.taskdel');if(tx){taskDel(tx.getAttribute('data-id'));return}
@@ -2489,6 +2716,8 @@ document.addEventListener('click',function(e){
     if(act==='rag'){if(window.showView){showView('rag')}else{ovSec('rag')}return}
     if(act==='mail'){if(window.showView){showView('mail')}else{ovSec('mail')}return}
   }
+  var aq=t.closest('.agqg');
+  if(aq){e.preventDefault();agChatSend(trimStr(aq.textContent));return}
 });
 document.addEventListener('keydown',function(e){
   if(e.key!=='Enter')return;
@@ -2526,25 +2755,48 @@ function taskPostpone(id){
   }
   taskSave(a);taskRender();renderTodayLocal();
 }
+function taskStat(cls,val){var e=document.querySelector('#secTasks .'+cls);if(e)e.textContent=String(val)}
+function taskRowHtml(k,t){
+  var over=!!(k.due&&k.due<t&&!k.done);
+  var when=k.due?('截止 '+k.due):'无期限';
+  return '<div class="taskrow'+(k.done?' done':'')+(over?' over':'')+'">'
+    +'<span class="badge">'+(k.done?'已完成':(over?'已逾期':(k.due===t?'今天到期':'待办')))+'</span>'
+    +'<b>'+esc(k.title)+'</b>'
+    +'<span class="tkwhen">'+esc(when)+'</span>'
+    +'<span class="tacts"><button type="button" class="btn btn-sm btn-gray '+(k.done?'taskundo':'taskdone')+'" data-id="'+k.id+'">'+(k.done?'未完成':'完成')+'</button>'
+    +'<button type="button" class="btn btn-sm btn-gray taskdel" data-id="'+k.id+'">删除</button></span></div>';
+}
 function taskRender(){
   var box=document.getElementById('taskList');if(!box)return;
   var a=taskAll(),cnt=document.getElementById('taskCnt');
-  var open=0;a.forEach(function(k){if(!k.done)open++});
+  var t=today(),open=0,over=0,done=0,todayN=0,i;
+  for(i=0;i<a.length;i++){
+    if(a[i].done){done++}
+    else{open++;if(a[i].due&&a[i].due<t)over++;if(a[i].due===t)todayN++}
+  }
   if(cnt)cnt.textContent=a.length?('未完成 '+open):'';
+  taskStat('tkAll',a.length);taskStat('tkToday',todayN);taskStat('tkOver',over);taskStat('tkDone',done);
   var rb=document.getElementById('remArm');
   if(rb)rb.textContent=(window.Notification&&Notification.permission==='granted')?'桌面提醒已开启（每分钟检查）':'开启桌面提醒';
-  if(!a.length){box.innerHTML='<div class="empty">还没有任务。添加一条（如「9 月 25 日前投完字节网申」），到期会自动浮出在「今日提醒」</div>';return}
-  var t=today();
-  a.sort(function(x,y){return (x.done-y.done)||((x.due||'9999')<(y.due||'9999')?-1:1)});
-  var h='';
-  a.forEach(function(k){
-    var over=k.due&&k.due<t&&!k.done;
-    h+='<div class="taskrow'+(k.done?' done':'')+(over?' over':'')+'">'
-      +'<span class="badge">'+(k.done?'已完成':(over?'已逾期':(k.due?(k.due===t?'今天到期':k.due):'无期限')))+'</span>'
-      +'<b>'+esc(k.title)+'</b>'
-      +'<span class="tacts"><button type="button" class="btn btn-sm btn-gray '+(k.done?'taskundo':'taskdone')+'" data-id="'+k.id+'">'+(k.done?'未完成':'完成')+'</button>'
-      +'<button type="button" class="btn btn-sm btn-gray taskdel" data-id="'+k.id+'">删除</button></span></div>';
-  });
+  if(!a.length){
+    box.innerHTML='<div class="tasktpl-empty"><b>还没有任务。</b>点上面任一「快速模板」，会自动填好内容并按天数算好截止日；你补上公司名，再点「添加任务」即可。'
+      +'<div style="margin-top:5px"><span class="sug">9 月 25 日前投完字节网申</span><span class="sug">周四 14:00 腾讯二面（提前调试设备）</span><span class="sug">给阿里的 HR 发一条进度跟进</span></div>'
+      +'到期的任务会自动浮出在「今日提醒」，也会汇进「日程安排」。</div>';
+    return;
+  }
+  var openList=[],doneList=[];
+  for(i=0;i<a.length;i++){(a[i].done?doneList:openList).push(a[i])}
+  openList.sort(function(x,y){return (x.due||'9999')<(y.due||'9999')?-1:1});
+  doneList.sort(function(x,y){return (y.at||'')<(x.at||'')?-1:1});
+  var h='<div class="tgroup"><h4>未完成 <span class="n">'+openList.length+'</span></h4><div class="tlist">';
+  if(openList.length){for(i=0;i<openList.length;i++)h+=taskRowHtml(openList[i],t)}
+  else{h+='<div class="tasktpl-empty">未完成清单是空的：加一条新任务，或把已完成的改回未完成。</div>'}
+  h+='</div></div>';
+  if(doneList.length){
+    h+='<div class="tgroup"><h4>已完成 <span class="n">'+doneList.length+'</span></h4><div class="tlist">';
+    for(i=0;i<doneList.length;i++)h+=taskRowHtml(doneList[i],t);
+    h+='</div></div>';
+  }
   box.innerHTML=h;
 }
 function taskDueItems(){
@@ -2617,7 +2869,12 @@ function schRender(){
   rows.sort(function(x,y){return (x.d||'9999')<(y.d||'9999')?-1:1});
   var cnt=document.getElementById('schedCnt');
   if(cnt)cnt.textContent=rows.length?('共 '+rows.length+' 项'):'';
-  if(!rows.length){box.innerHTML='<div class="empty">暂无日程：给投递记录填「下次节点」，或到「定时任务」加一条</div>';return}
+  if(!rows.length){
+    box.innerHTML='<div class="tasktpl-empty"><b>暂无日程。</b>三路来源任意一路有数据就会自动汇到这里：'
+      +'<div style="margin-top:5px"><span class="sug">投递记录 → 填「下次节点」</span><span class="sug">收件箱 → 确认一条笔试 / 面试通知</span><span class="sug">定时任务 → 加一条带截止日期的任务</span></div>'
+      +'红框 = 已过期、蓝框 = 今天；点「求职助理」还能让它按日程排出今天最值得做的 3 件事。</div>';
+    return;
+  }
   var t=today(),h='';
   rows.forEach(function(x){
     var cls=x.d&&x.d<t?' over':(x.d===t?' now':'');
@@ -2632,7 +2889,8 @@ function agChatRestore(){
   var box=document.getElementById('agChatLog');if(!box)return;
   var a=agChatAll();
   if(!a.length){
-    box.innerHTML='<div class="agmsg sys">我是你的求职助理：提问会先在本机资料库做 BM25 检索，命中的片段作为上下文交给模型（回答带【序号】出处）；没命中就按求职常识回答。未配置 Key 时为演示输出。</div>';
+    box.innerHTML='<div class="agmsg sys">我是你的求职助理：提问会先在本机资料库做 BM25 检索，命中的片段作为上下文交给模型（回答带【序号】出处）；没命中就按求职常识回答。未配置 Key 时为演示输出。</div>'
+      +'<div class="agmsg sys">可以这样问：① 今天我该做什么　② 哪些岗位要求 RAG / 知识图谱　③ 帮我排一份下周的面试准备清单　④ 我面过的公司复盘里有哪些共性短板</div>';
     return;
   }
   agChatPaint(a);
@@ -3927,6 +4185,10 @@ function showView(name){
   try{history.replaceState(null,'','#'+name)}catch(e){}
   window.scrollTo(0,0);
 }
+/* 必须挂到 window：侧栏分组的点击委托在 NAVSEC_JS（shared 段，作用域在本 IIFE 之外），
+   它只认 window.showView；不挂的话从「秋招岗位/央国企/实习直通」点「个人知识库/定时任务」
+   只会切容器显示、不会切视图，表现为侧栏高亮变了但内容没动。 */
+window.showView=showView;
 function bindTabs(){
   Array.prototype.forEach.call(document.querySelectorAll('nav.tabbar .tab'),function(t){t.addEventListener('click',function(){var v=t.getAttribute('data-view');if(!v)return;/* .snsec（data-sec）由 NAVSEC_JS 的委托处理 */showView(v)})});
   Array.prototype.forEach.call(document.querySelectorAll('[data-goto]'),function(a){a.addEventListener('click',function(e){e.preventDefault();showView(a.getAttribute('data-goto'))})});

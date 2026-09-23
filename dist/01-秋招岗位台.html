@@ -135,7 +135,6 @@ section{background:var(--card);border:1px solid var(--line);border-radius:var(--
 section>h2{font-size:15px;display:flex;align-items:center;gap:9px;margin-bottom:13px;font-weight:600;letter-spacing:-.01em}
 section>h2 svg{width:27px;height:27px;flex:none;background:#eef1f5;border-radius:0;padding:6px;stroke:var(--sub)}
 section>h2 .cnt{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--sub);font-weight:500;background:#eef1f5;border-radius:0;padding:2px 9px}
-#todayList{display:flex;flex-direction:column;gap:8px}
 .titem{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:3px;background:#fff;border:1px solid var(--line);flex-wrap:wrap;transition:border-color .15s,box-shadow .15s}
 .titem:hover{border-color:#b9c4d4;box-shadow:none}
 .titem.red{box-shadow:inset 4px 0 0 var(--red)}
@@ -349,6 +348,103 @@ label.fl{display:block;margin:6px 0 0}
 .qintel{display:flex;gap:8px;margin-bottom:10px}
 .qintel input{flex:1;height:40px;border:1px solid var(--line);border-radius:3px;padding:0 12px;font-size:14px;font-family:inherit;background:#fff;min-width:0}
 .qintel input:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-soft)}
+/* ---------- v47：全屏铺满（壳宽随视口分级，宽屏自动多列） ---------- */
+:root{--shell:1100px}
+@media (min-width:1280px){:root{--shell:1400px}}
+@media (min-width:1600px){:root{--shell:1680px}}
+@media (min-width:1900px){:root{--shell:1820px}}
+.wrap,nav.tabbar .inner,.hero{max-width:var(--shell)}
+.stats{grid-template-columns:repeat(auto-fit,minmax(178px,1fr))}
+.moduleCards{grid-template-columns:repeat(auto-fit,minmax(268px,1fr))}
+@media (min-width:1320px){
+  .cards{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:12px}
+}
+@media (min-width:1900px){.cards{grid-template-columns:repeat(3,1fr)}}
+/* ---- 个人知识库：步骤示意 / 语料概览 / 示例问题 ---- */
+.ragsec .rachint{margin:0 0 11px;font-size:12px;color:var(--sub);line-height:1.75}
+.ragsteps{display:flex;flex-wrap:wrap;margin:0 0 12px;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:#fff}
+.ragstep{flex:1;min-width:172px;padding:10px 12px;position:relative;background:#fff}
+.ragstep+.ragstep{border-left:1px solid var(--line)}
+.ragstep b{display:block;font-size:12.5px;color:var(--txt);margin-bottom:2px;padding-right:22px}
+.ragstep span{display:block;font-size:11.5px;color:var(--sub);line-height:1.55}
+.ragstep .rn{position:absolute;top:9px;right:10px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--pri)}
+.ragwrap{display:grid;grid-template-columns:1.45fr 1fr;gap:13px;align-items:start}
+@media (max-width:1180px){.ragwrap{grid-template-columns:1fr}}
+.ragmain,.ragside{min-width:0}
+.ragside{display:flex;flex-direction:column;gap:12px}
+.ragbox{border:1px solid var(--line);border-radius:3px;background:#fbfcfe;padding:12px 13px}
+.ragbox>h4{font-size:12px;font-weight:700;color:var(--txt);display:flex;align-items:center;gap:8px;margin:0 0 9px;letter-spacing:-.01em}
+.ragbox>h4 .cnt{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--sub);font-weight:500}
+.ragcats{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:7px}
+.ragcat{border:1px solid var(--line);border-radius:3px;background:#fff;padding:8px 10px;position:relative;overflow:hidden}
+.ragcat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--pri)}
+.ragcat.c2::before{background:#7c3aed}
+.ragcat.c3::before{background:var(--green)}
+.ragcat.c4::before{background:var(--orange)}
+.ragcat.c5::before{background:#0891b2}
+.ragcat b{display:block;font-size:19px;font-weight:600;line-height:1.18;font-variant-numeric:tabular-nums}
+.ragcat span{font-size:11.5px;color:var(--sub)}
+.ragcat.zero{opacity:.45}
+.ragqgroup+.ragqgroup{margin-top:9px}
+.ragqgroup .qt{font-size:11px;font-weight:600;color:var(--sub);letter-spacing:.4px;margin-bottom:5px}
+.ragqgroup .qs{display:flex;flex-direction:column;gap:5px}
+.ragqg{display:block;width:100%;text-align:left;white-space:normal;line-height:1.5;min-height:0;padding:7px 10px;border:1px solid var(--line);border-radius:0;background:#fff;color:var(--txt);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit}
+.ragqg:hover{border-color:var(--pri);background:var(--pri-soft);color:var(--pri)}
+.ragempty{border:1px dashed #c2d0ea;background:#f5f8ff;border-radius:3px;padding:11px 13px;font-size:12px;color:var(--sub);line-height:1.75;margin-top:9px}
+.ragempty .rt{font-weight:600;color:var(--txt);display:block;margin-bottom:4px;font-size:12.5px}
+.ragempty ol{margin:0;padding-left:18px}
+.ragempty li{margin:2px 0}
+.ragempty code{font-family:var(--mono);font-size:11.5px;background:#fff;border:1px solid var(--line);padding:0 5px}
+/* ---- 定时任务：统计条 / 快速模板 / 分组 ---- */
+.taskstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;margin:0 0 12px}
+.taskstat{border:1px solid var(--line);border-radius:3px;background:#fff;padding:9px 12px;position:relative;overflow:hidden}
+.taskstat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line)}
+.taskstat b{display:block;font-size:19px;font-weight:600;line-height:1.18;font-variant-numeric:tabular-nums}
+.taskstat span{font-size:11.5px;color:var(--sub)}
+.taskstat.today::before{background:var(--pri)}
+.taskstat.today b{color:var(--pri)}
+.taskstat.over::before{background:var(--red)}
+.taskstat.over b{color:var(--red)}
+.taskstat.done::before{background:var(--green)}
+.taskstat.done b{color:var(--green)}
+.taskform{border:1px solid var(--line);border-radius:3px;background:#fbfcfe;padding:12px 13px;margin-bottom:13px}
+.taskform .formrow{margin-bottom:8px}
+.tasktpl{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 10px;align-items:center}
+.tasktpl .tl{font-size:11px;color:var(--sub);margin-right:2px}
+.tasktpl .tt{font-size:12px;padding:5px 11px;border:1px solid var(--line);border-radius:0;background:#fff;color:var(--sub);cursor:pointer;font-family:inherit;font-weight:500}
+.tasktpl .tt:hover{border-color:var(--pri);color:var(--pri);background:var(--pri-soft)}
+.taskbtns{display:flex;gap:8px;flex-wrap:wrap}
+.tgroup{margin-bottom:13px}
+.tgroup:last-child{margin-bottom:0}
+.tgroup>h4{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.6px;margin:0 0 7px;display:flex;align-items:center;gap:9px}
+.tgroup>h4::after{content:'';flex:1;height:1px;background:var(--line)}
+.tgroup>h4 .n{font-family:var(--mono);color:var(--txt)}
+.tlist{display:flex;flex-direction:column;gap:8px}
+.tlist .taskrow{margin-bottom:0}
+.taskrow .tkwhen{font-family:var(--mono);font-size:11.5px;color:var(--sub);flex:none}
+.tasktpl-empty{border:1px dashed #c2d0ea;background:#f5f8ff;border-radius:3px;padding:11px 13px;font-size:12px;color:var(--sub);line-height:1.8}
+.tasktpl-empty b{color:var(--txt)}
+.tasktpl-empty .sug{display:inline-block;margin:3px 6px 0 0;padding:3px 9px;background:#fff;border:1px solid var(--line);font-size:11.5px;color:var(--txt)}
+/* ---- 求职助理：对话区拉高 + 侧栏「能做什么 / 示例问题」 ---- */
+.agchat{min-height:min(46vh,420px);max-height:min(64vh,640px)}
+.agwrap{display:grid;grid-template-columns:1.6fr 1fr;gap:13px;align-items:start}
+@media (max-width:1180px){.agwrap{grid-template-columns:1fr}}
+.agmain,.agside{min-width:0}
+.agside{display:flex;flex-direction:column;gap:12px}
+.agcap{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:3px;background:#fff;padding:7px 9px;margin-bottom:5px}
+.agcap:last-child{margin-bottom:0}
+.agcap i{font-family:var(--mono);font-size:10.5px;color:var(--pri);font-style:normal;font-weight:700;flex:none;padding-top:1px}
+.agcap b{display:block;font-size:12px;color:var(--txt);font-weight:600}
+.agcap span{font-size:11.5px;color:var(--sub);line-height:1.45}
+.agqg{display:block;width:100%;text-align:left;white-space:normal;line-height:1.5;min-height:0;padding:7px 10px;margin-bottom:5px;border:1px solid var(--line);border-radius:0;background:#fff;color:var(--txt);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit}
+.agqg:last-child{margin-bottom:0}
+.agqg:hover{border-color:var(--pri);background:var(--pri-soft);color:var(--pri)}
+/* 宽屏把「行列表」也铺成两栏 —— 必须放在各自 display 基础规则之后，否则被源序更后的基础规则覆盖成死代码。
+   注意别用 #todayList 这类 ID 选择器：合并版里 ID 会被加 ov_/at_/so_/ir_ 前缀，ID 选择器会直接失配成死规则。 */
+@media (min-width:1320px){
+  .tlist,#schedList{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:8px}
+  #schedList .schrow{margin-bottom:0}
+}
 /* ---------- 弹层 ---------- */
 #lnkModal .lnk-card{background:#fff;border-radius:3px;max-width:520px;width:100%;padding:20px;box-shadow:0 24px 60px rgba(15,23,42,.25);animation:pop .18s ease}
 @keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
@@ -1951,8 +2047,16 @@ function ragPanelHtml(){
    +'<div class="raginput"><input class="ragq" placeholder="问一句，例如：哪些岗位要求 RAG / 知识图谱？"><button type="button" class="btn btn-pri btn-sm ragask">检索并回答</button></div>'
    +'<div class="ragchips">'
    +'<button type="button" class="schip ragchip">哪些岗位要求 RAG / 知识图谱？</button>'
-   +'<button type="button" class="schip ragchip">哪些岗位 7 天内截止？</button>'
+   +'<button type="button" class="schip ragchip">7 天内截止的大模型岗位有哪些？</button>'
    +'<button type="button" class="schip ragchip">我投递过的哪些公司进面试了？</button>'
+   +'<button type="button" class="schip ragchip">我的简历里有哪些大模型相关经历？</button>'
+   +'</div>'
+   +'<div class="ragcats ragcatbox" style="margin:0 0 9px">'
+   +'<div class="ragcat" data-src="岗位"><b>-</b><span>岗位（含 JD）</span></div>'
+   +'<div class="ragcat c2" data-src="实习"><b>-</b><span>实习通道</span></div>'
+   +'<div class="ragcat c3" data-src="投递"><b>-</b><span>投递与节点</span></div>'
+   +'<div class="ragcat c4" data-src="简历"><b>-</b><span>简历档案</span></div>'
+   +'<div class="ragcat c5" data-src="复盘"><b>-</b><span>面试复盘</span></div>'
    +'</div>'
    +'<div class="ragstat">语料：本机岗位（含贴过的 JD 正文）+ 投递记录与复盘 + 简历档案</div>'
    +'<div class="ragout" style="display:none"></div>'
@@ -1971,6 +2075,7 @@ function ragOpen(){
   var sc=m.querySelector('.mtcard');
   var inp=sc?sc.querySelector('.ragq'):null;
   if(inp)setTimeout(function(){try{inp.focus()}catch(e){}},60);
+  if(window.ragStatRefresh)window.ragStatRefresh();
   return sc;
 }
 document.addEventListener('click',function(e){
@@ -2004,13 +2109,28 @@ document.addEventListener('keydown',function(e){
 window.ragAsk=ragAsk;window.ragCorpus=ragCorpus;window.ragIndex=ragIndex;window.ragSearch=ragSearch;
 /* 语料概览：进「个人知识库」时刷新计数与状态行（修复空白观感） */
 function ragStatRefresh(){
-  var docs=ragCorpus(),cnt=ragCount(docs);
+  var docs=ragCorpus(),cnt=ragCount(docs),i,j;
+  var boxes=document.querySelectorAll('.ragcatbox');
+  for(i=0;i<boxes.length;i++){
+    var tiles=boxes[i].querySelectorAll('[data-src]');
+    for(j=0;j<tiles.length;j++){
+      var n=cnt[tiles[j].getAttribute('data-src')]||0;
+      var bb=tiles[j].querySelector('b');
+      if(bb)bb.textContent=String(n);
+      tiles[j].classList[n?'remove':'add']('zero');
+    }
+    var par=boxes[i].parentNode,ec=par?par.querySelector('.ragcatempty'):null;
+    if(ec){if(docs.length)ec.setAttribute('hidden','hidden');else ec.removeAttribute('hidden')}
+  }
   var e=document.querySelector('#secRag .ragcnt');
   if(e)e.textContent='语料 '+docs.length+' 条';
-  var st=document.querySelector('#secRag .ragstat');
-  if(st)st.textContent=docs.length
+  var cc=document.querySelector('#secRag .ragcatcnt');
+  if(cc)cc.textContent=docs.length?(docs.length+' 条 · '+ragCountStr(cnt)):'0 条';
+  var txt=docs.length
     ?('语料就绪：'+ragCountStr(cnt)+' · 输入问题开始检索，命中后模型只依据片段作答')
     :'本机还没有可用语料：先在岗位页贴几份 JD、在「简历档案」存一份简历，或补一条投递记录';
+  var sts=document.querySelectorAll('.ragstat');
+  for(i=0;i<sts.length;i++)sts[i].textContent=txt;
 }
 window.ragTok=ragTok;window.ragLocal=ragLocal;window.ragFmt=ragFmt;window.ragOpen=ragOpen;window.ragScopeOf=ragScopeOf;window.ragStatRefresh=ragStatRefresh;
 
@@ -2066,6 +2186,17 @@ document.addEventListener('click',function(e){
   if(t.id==='remArm'){remArm(t);return}
   if(t.id==='ibRawBtn'){ibRawParse();return}
   if(t.id==='ibRawClr'){var ta=document.getElementById('ibRaw');if(ta)ta.value='';var tp=document.getElementById('ibRawTip');if(tp){tp.style.display='none';tp.textContent=''}return}
+  var tpl=t.closest('.tasktpl .tt');
+  if(tpl){
+    var tti=document.getElementById('taskTitle'),ttd=document.getElementById('taskDate');
+    if(tti){tti.value=tpl.getAttribute('data-tpl')||'';try{tti.focus()}catch(e5){}}
+    if(ttd){
+      var ttn=Number(tpl.getAttribute('data-days'))||0,dd=new Date();
+      dd.setDate(dd.getDate()+ttn);
+      ttd.value=dd.getFullYear()+'-'+('0'+(dd.getMonth()+1)).slice(-2)+'-'+('0'+dd.getDate()).slice(-2);
+    }
+    return;
+  }
   var tk=t.closest('.taskdone');if(tk){taskMark(tk.getAttribute('data-id'),1);return}
   var tu=t.closest('.taskundo');if(tu){taskMark(tu.getAttribute('data-id'),0);return}
   var tx=t.closest('.taskdel');if(tx){taskDel(tx.getAttribute('data-id'));return}
@@ -2076,6 +2207,8 @@ document.addEventListener('click',function(e){
     if(act==='rag'){if(window.showView){showView('rag')}else{ovSec('rag')}return}
     if(act==='mail'){if(window.showView){showView('mail')}else{ovSec('mail')}return}
   }
+  var aq=t.closest('.agqg');
+  if(aq){e.preventDefault();agChatSend(trimStr(aq.textContent));return}
 });
 document.addEventListener('keydown',function(e){
   if(e.key!=='Enter')return;
@@ -2113,25 +2246,48 @@ function taskPostpone(id){
   }
   taskSave(a);taskRender();renderTodayLocal();
 }
+function taskStat(cls,val){var e=document.querySelector('#secTasks .'+cls);if(e)e.textContent=String(val)}
+function taskRowHtml(k,t){
+  var over=!!(k.due&&k.due<t&&!k.done);
+  var when=k.due?('截止 '+k.due):'无期限';
+  return '<div class="taskrow'+(k.done?' done':'')+(over?' over':'')+'">'
+    +'<span class="badge">'+(k.done?'已完成':(over?'已逾期':(k.due===t?'今天到期':'待办')))+'</span>'
+    +'<b>'+esc(k.title)+'</b>'
+    +'<span class="tkwhen">'+esc(when)+'</span>'
+    +'<span class="tacts"><button type="button" class="btn btn-sm btn-gray '+(k.done?'taskundo':'taskdone')+'" data-id="'+k.id+'">'+(k.done?'未完成':'完成')+'</button>'
+    +'<button type="button" class="btn btn-sm btn-gray taskdel" data-id="'+k.id+'">删除</button></span></div>';
+}
 function taskRender(){
   var box=document.getElementById('taskList');if(!box)return;
   var a=taskAll(),cnt=document.getElementById('taskCnt');
-  var open=0;a.forEach(function(k){if(!k.done)open++});
+  var t=today(),open=0,over=0,done=0,todayN=0,i;
+  for(i=0;i<a.length;i++){
+    if(a[i].done){done++}
+    else{open++;if(a[i].due&&a[i].due<t)over++;if(a[i].due===t)todayN++}
+  }
   if(cnt)cnt.textContent=a.length?('未完成 '+open):'';
+  taskStat('tkAll',a.length);taskStat('tkToday',todayN);taskStat('tkOver',over);taskStat('tkDone',done);
   var rb=document.getElementById('remArm');
   if(rb)rb.textContent=(window.Notification&&Notification.permission==='granted')?'桌面提醒已开启（每分钟检查）':'开启桌面提醒';
-  if(!a.length){box.innerHTML='<div class="empty">还没有任务。添加一条（如「9 月 25 日前投完字节网申」），到期会自动浮出在「今日提醒」</div>';return}
-  var t=today();
-  a.sort(function(x,y){return (x.done-y.done)||((x.due||'9999')<(y.due||'9999')?-1:1)});
-  var h='';
-  a.forEach(function(k){
-    var over=k.due&&k.due<t&&!k.done;
-    h+='<div class="taskrow'+(k.done?' done':'')+(over?' over':'')+'">'
-      +'<span class="badge">'+(k.done?'已完成':(over?'已逾期':(k.due?(k.due===t?'今天到期':k.due):'无期限')))+'</span>'
-      +'<b>'+esc(k.title)+'</b>'
-      +'<span class="tacts"><button type="button" class="btn btn-sm btn-gray '+(k.done?'taskundo':'taskdone')+'" data-id="'+k.id+'">'+(k.done?'未完成':'完成')+'</button>'
-      +'<button type="button" class="btn btn-sm btn-gray taskdel" data-id="'+k.id+'">删除</button></span></div>';
-  });
+  if(!a.length){
+    box.innerHTML='<div class="tasktpl-empty"><b>还没有任务。</b>点上面任一「快速模板」，会自动填好内容并按天数算好截止日；你补上公司名，再点「添加任务」即可。'
+      +'<div style="margin-top:5px"><span class="sug">9 月 25 日前投完字节网申</span><span class="sug">周四 14:00 腾讯二面（提前调试设备）</span><span class="sug">给阿里的 HR 发一条进度跟进</span></div>'
+      +'到期的任务会自动浮出在「今日提醒」，也会汇进「日程安排」。</div>';
+    return;
+  }
+  var openList=[],doneList=[];
+  for(i=0;i<a.length;i++){(a[i].done?doneList:openList).push(a[i])}
+  openList.sort(function(x,y){return (x.due||'9999')<(y.due||'9999')?-1:1});
+  doneList.sort(function(x,y){return (y.at||'')<(x.at||'')?-1:1});
+  var h='<div class="tgroup"><h4>未完成 <span class="n">'+openList.length+'</span></h4><div class="tlist">';
+  if(openList.length){for(i=0;i<openList.length;i++)h+=taskRowHtml(openList[i],t)}
+  else{h+='<div class="tasktpl-empty">未完成清单是空的：加一条新任务，或把已完成的改回未完成。</div>'}
+  h+='</div></div>';
+  if(doneList.length){
+    h+='<div class="tgroup"><h4>已完成 <span class="n">'+doneList.length+'</span></h4><div class="tlist">';
+    for(i=0;i<doneList.length;i++)h+=taskRowHtml(doneList[i],t);
+    h+='</div></div>';
+  }
   box.innerHTML=h;
 }
 function taskDueItems(){
@@ -2204,7 +2360,12 @@ function schRender(){
   rows.sort(function(x,y){return (x.d||'9999')<(y.d||'9999')?-1:1});
   var cnt=document.getElementById('schedCnt');
   if(cnt)cnt.textContent=rows.length?('共 '+rows.length+' 项'):'';
-  if(!rows.length){box.innerHTML='<div class="empty">暂无日程：给投递记录填「下次节点」，或到「定时任务」加一条</div>';return}
+  if(!rows.length){
+    box.innerHTML='<div class="tasktpl-empty"><b>暂无日程。</b>三路来源任意一路有数据就会自动汇到这里：'
+      +'<div style="margin-top:5px"><span class="sug">投递记录 → 填「下次节点」</span><span class="sug">收件箱 → 确认一条笔试 / 面试通知</span><span class="sug">定时任务 → 加一条带截止日期的任务</span></div>'
+      +'红框 = 已过期、蓝框 = 今天；点「求职助理」还能让它按日程排出今天最值得做的 3 件事。</div>';
+    return;
+  }
   var t=today(),h='';
   rows.forEach(function(x){
     var cls=x.d&&x.d<t?' over':(x.d===t?' now':'');
@@ -2219,7 +2380,8 @@ function agChatRestore(){
   var box=document.getElementById('agChatLog');if(!box)return;
   var a=agChatAll();
   if(!a.length){
-    box.innerHTML='<div class="agmsg sys">我是你的求职助理：提问会先在本机资料库做 BM25 检索，命中的片段作为上下文交给模型（回答带【序号】出处）；没命中就按求职常识回答。未配置 Key 时为演示输出。</div>';
+    box.innerHTML='<div class="agmsg sys">我是你的求职助理：提问会先在本机资料库做 BM25 检索，命中的片段作为上下文交给模型（回答带【序号】出处）；没命中就按求职常识回答。未配置 Key 时为演示输出。</div>'
+      +'<div class="agmsg sys">可以这样问：① 今天我该做什么　② 哪些岗位要求 RAG / 知识图谱　③ 帮我排一份下周的面试准备清单　④ 我面过的公司复盘里有哪些共性短板</div>';
     return;
   }
   agChatPaint(a);

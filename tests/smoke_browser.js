@@ -836,6 +836,14 @@ const MOCK = `
     out.snitems = document.querySelectorAll('nav.tabbar .tab').length;
     const vis = (id) => { const e = document.getElementById('ov_' + id) || document.getElementById(id); return !!e && e.style.display !== 'none'; };
     const click = (sec) => { const b = Array.from(document.querySelectorAll('.snsec')).find((x) => x.getAttribute('data-sec') === sec); if (b) b.click(); };
+    // 回归：从「秋招岗位」点侧栏分组，必须真的切回总览台视图
+    // （曾因 window.showView 未暴露给 NAVSEC_JS，只切了容器 display、没切 .view，表现为侧栏高亮变了但内容不动）
+    const jt = Array.from(document.querySelectorAll('nav.tabbar .tab')).find((x) => x.getAttribute('data-view') === 'autumn');
+    if (jt) jt.click();
+    out.onAutumnView = !!document.querySelector('#view_autumn.active');
+    click('tasks');
+    out.backToOverview = !!document.querySelector('#view_overview.active');
+    out.switchFromJobView = !!(window.showView && out.onAutumnView && out.backToOverview);
     click('tasks');
     out.tasksOpen = vis('secTasks');
     const inp = document.getElementById('ov_taskTitle') || document.getElementById('taskTitle');
@@ -872,6 +880,30 @@ const MOCK = `
     out.remArm = !!(document.getElementById('ov_remArm') || document.getElementById('remArm'));
     out.remTick = typeof window.remTick === 'function';
     out.rvMic = typeof window.rvMic === 'function';
+    // v47：知识库 / 定时任务 的信息密度（语料概览 · 步骤示意 · 示例问题 · 任务统计与模板）
+    const rc = document.querySelectorAll('#secRag .ragcatbox [data-src]');
+    out.ragTileN = rc.length;
+    out.ragTileFilled = Array.prototype.filter.call(rc, (x) => { const b = x.querySelector('b'); return !!b && b.textContent !== '-'; }).length;
+    out.ragSteps = document.querySelectorAll('#secRag .ragstep').length;
+    out.ragExamples = document.querySelectorAll('#secRag .ragqg').length;
+    out.ragCntBox = ((document.querySelector('#secRag .ragcatcnt') || {}).textContent || '');
+    const ts = document.querySelectorAll('#secTasks .taskstat b');
+    out.taskStatsN = ts.length;
+    out.taskStatsSum = Array.prototype.reduce.call(ts, (a, x) => a + (Number(x.textContent) || 0), 0);
+    out.taskTpl = document.querySelectorAll('#secTasks .tasktpl .tt').length;
+    out.taskGroups = document.querySelectorAll('#secTasks .tgroup').length;
+    out.taskGrouped = !!document.querySelector('#secTasks .tgroup .tlist .taskrow');
+    // v47：求职助理侧栏（能力清单 + 示例问题，点一下直接发）
+    out.agCaps = document.querySelectorAll('#secAgent .agcap').length;
+    out.agQs = document.querySelectorAll('#secAgent .agqg').length;
+    out.agQClick = false;
+    const aqBtn = document.querySelector('#secAgent .agqg');
+    if (aqBtn) {
+      const atxt = aqBtn.textContent.trim().slice(0, 8);
+      aqBtn.click();
+      const alog = document.getElementById('ov_agChatLog') || document.getElementById('agChatLog');
+      out.agQClick = !!alog && alog.textContent.indexOf(atxt) >= 0;
+    }
     click('mail');
     out.mailOpen = vis('secMail') && vis('secIb');
     out.ibRaw = !!(document.getElementById('ov_ibRaw') || document.getElementById('ibRaw'));
@@ -905,13 +937,22 @@ const MOCK = `
     if (window.renderToday) renderToday();
     return out;
   });
-  console.log('我的空间: 分组=', myspace.groups, '| 侧栏项=', myspace.snitems, '| 任务页开=', myspace.tasksOpen, '| 加任务=', myspace.taskAdded, '| 浮出今日=', myspace.inToday, '| 日程开=', myspace.schedOpen, '| 日程行=', myspace.schedRows, '| 助理开=', myspace.agentOpen, '| 发消息=', myspace.chatSent, '| 知识库开=', myspace.ragOpen, '| RAG卡在内=', myspace.ragSecIn, '| 邮箱开=', myspace.mailOpen, '| 解析框=', myspace.ibRaw, '| 投递开=', myspace.appsOpen, '| 配置开=', myspace.cfgOpen, '| 调参台在=', myspace.agFnSel, '| 个人中心=', myspace.meOpen, '| 回今日=', myspace.backToday);
+  console.log('我的空间: 分组=', myspace.groups, '| 侧栏项=', myspace.snitems, '| 岗位视图切回总览=', myspace.switchFromJobView, '| 任务页开=', myspace.tasksOpen, '| 加任务=', myspace.taskAdded, '| 浮出今日=', myspace.inToday, '| 日程开=', myspace.schedOpen, '| 日程行=', myspace.schedRows, '| 助理开=', myspace.agentOpen, '| 发消息=', myspace.chatSent, '| 知识库开=', myspace.ragOpen, '| RAG卡在内=', myspace.ragSecIn, '| 邮箱开=', myspace.mailOpen, '| 解析框=', myspace.ibRaw, '| 投递开=', myspace.appsOpen, '| 配置开=', myspace.cfgOpen, '| 调参台在=', myspace.agFnSel, '| 个人中心=', myspace.meOpen, '| 回今日=', myspace.backToday);
   if ((myspace.groups || '').split(',').length < 3) errors.push('sidenav groups missing');
   if (!myspace.tasksOpen || !myspace.taskAdded || !myspace.inToday) errors.push('tasks broken');
+  if (!myspace.switchFromJobView) errors.push('sidenav switch from job view broken');
   if (!myspace.schedOpen || myspace.schedRows < 1) errors.push('sched broken');
   if (!myspace.agentOpen || !myspace.chatSent) errors.push('agent chat broken');
   if (!myspace.ragOpen || !myspace.ragSecIn) errors.push('knowledge base broken');
   if (!myspace.ragSibling || !myspace.ragCnt) errors.push('rag sibling broken');
+  console.log('知识库UI: 语料格=', myspace.ragTileN, '| 已填=', myspace.ragTileFilled, '| 概览=', myspace.ragCntBox, '| 步骤=', myspace.ragSteps, '| 示例问题=', myspace.ragExamples);
+  if (myspace.ragTileN < 5 || myspace.ragTileFilled < 5 || !myspace.ragCntBox) errors.push('rag corpus overview broken');
+  if (myspace.ragSteps < 3 || myspace.ragExamples < 6) errors.push('rag guidance broken');
+  console.log('任务UI: 统计格=', myspace.taskStatsN, '| 合计=', myspace.taskStatsSum, '| 模板=', myspace.taskTpl, '| 分组=', myspace.taskGroups, '| 分组内有行=', myspace.taskGrouped);
+  if (myspace.taskStatsN < 4 || myspace.taskStatsSum < 1 || myspace.taskTpl < 4) errors.push('task stats/templates broken');
+  if (myspace.taskGroups < 1 || !myspace.taskGrouped) errors.push('task grouping broken');
+  console.log('助理UI: 能力卡=', myspace.agCaps, '| 示例问题=', myspace.agQs, '| 点击示例可用=', myspace.agQClick);
+  if (myspace.agCaps < 5 || myspace.agQs < 5 || !myspace.agQClick) errors.push('agent side panel broken');
   if (!myspace.remArm || !myspace.remTick || !myspace.rvMic) errors.push('remind/mic broken');
   if (myspace.freePresets < 9 || !myspace.freeTip) errors.push('free presets broken');
   if (!myspace.freeCh || !myspace.freeOff) errors.push('zero-config ai channel broken');

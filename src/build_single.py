@@ -244,6 +244,10 @@ function showView(name){
   try{history.replaceState(null,'','#'+name)}catch(e){}
   window.scrollTo(0,0);
 }
+/* 必须挂到 window：侧栏分组的点击委托在 NAVSEC_JS（shared 段，作用域在本 IIFE 之外），
+   它只认 window.showView；不挂的话从「秋招岗位/央国企/实习直通」点「个人知识库/定时任务」
+   只会切容器显示、不会切视图，表现为侧栏高亮变了但内容没动。 */
+window.showView=showView;
 function bindTabs(){
   Array.prototype.forEach.call(document.querySelectorAll('nav.tabbar .tab'),function(t){t.addEventListener('click',function(){var v=t.getAttribute('data-view');if(!v)return;/* .snsec（data-sec）由 NAVSEC_JS 的委托处理 */showView(v)})});
   Array.prototype.forEach.call(document.querySelectorAll('[data-goto]'),function(a){a.addEventListener('click',function(e){e.preventDefault();showView(a.getAttribute('data-goto'))})});
