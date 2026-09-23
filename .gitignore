@@ -26,3 +26,11 @@ scripts/*_last.log
 
 # GitHub Pages 部署临时目录
 _site/
+
+# 全量数据快照含作者真实投递/实习/收件箱记录，而本仓库是公开的 —— 绝不入库。
+# 本机由 export_seed.py（需 token）或 daily_sync.py 生成；
+# CI 没有它时用 src/seed/seed.public.json（只含岗位）兜底。
+src/seed/seed.json
+
+# 私人站点版产物同样内嵌全量快照，不入库（本机构建后自行发布到工作空间）
+dist/site/

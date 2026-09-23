@@ -3,9 +3,9 @@
 > 一个为 2027 届校招求职定制的个人数字工作台：**把「看岗位」和「管投递」装进同一个页面。**
 > 纯前端单文件应用（零运行时依赖），构建链产出五份发布形态：独立站点、公开版站点、合并版单文件、离线 Demo、四个独立页面。
 
-- 在线站点（私人版，含个人投递数据）：<https://job-hunt-desk-78822.app.workbuddy.host/>
-- 公开版站点：面向他人分享，只内置岗位快照，不含任何个人投递/简历/收件箱数据
-- GitHub Pages 演示（离线数据版）：由 CI 自动发布
+- **公开版（交付 / 分享用，推荐）**：<https://dorchain-chang.github.io/job-seeker/> —— 只内置岗位快照，不含作者任何个人数据
+- 演示版（离线 mock 数据）：<https://dorchain-chang.github.io/job-seeker/demo/>
+- 私人版（作者自用，含个人投递数据）：<https://job-hunt-desk-78822.app.workbuddy.host/>
 - 更新日志：[CHANGELOG.md](CHANGELOG.md)
 
 [![Lint](https://github.com/Dorchain-chang/job-seeker/actions/workflows/lint.yml/badge.svg)](https://github.com/Dorchain-chang/job-seeker/actions/workflows/lint.yml)
@@ -19,6 +19,16 @@
 - **数据自主**：全部数据存浏览器本机（私人版 `qz_*` / 公开版 `qc_*` 键），一键导出 / 导入 JSON 备份
 - **可分享的公开版**：同一套功能，但**岗位库由访客自选起点**（用内置快照，或从空白开始自己记），个人数据一律留在访客本机
 
+## 使用方式
+
+打开 <https://dorchain-chang.github.io/job-seeker/> 即可，**无需安装、无需登录、无需配置**：
+
+1. **首次打开二选一**：「用内置岗位快照开始」（含 724 条秋招岗位）或「从空白开始，只记我自己的投递」
+2. 所有数据都存在**你自己浏览器的本机存储**（localStorage）里，不上传任何服务器
+3. 换设备或清缓存前，用侧栏底部的「导出备份」存一份 JSON；在新浏览器「导入备份」即可完整迁移
+4. AI 功能默认走零配置免费通道；填入自己的 API Key（BYOK）可切换到自选模型
+5. 想自己部署：`git clone` 后按下方「构建链」跑五步，`dist/public/index.html` 就是可直接托管的单文件
+
 ## 目录结构
 
 ```
@@ -29,9 +39,11 @@ job-seeker/
 │   ├── build_demo.py         #   产出离线 Demo（localStorage mock，无生产链接）
 │   ├── build_site.py         #   产出独立站点（内嵌数据快照 + 增量同步适配层）
 │   ├── build_public.py       #   产出公开版站点（快照只含岗位，访客自选起点，qz_ → qc_）
-│   ├── export_seed.py        #   从资料库数据表导出快照 → seed/seed.json
+│   ├── export_seed.py        #   从资料库数据表导出全量快照 → seed/seed.json（需 token）
 │   ├── canonical_schema.json #   字段规范（构建输入）
-│   └── seed/seed.json        #   站点数据快照（每日抓取后重新导出）
+│   └── seed/
+│       ├── seed.public.json  #   公开快照（只含岗位）—— **入库**，CI 与本机兜底都用它
+│       └── seed.json         #   全量快照（含个人投递）—— **不入库**，本机 export_seed/daily_sync 生成
 ├── scripts/                  # 运维与数据管道（手动 / 自动化调用）
 │   ├── daily_sync.py         #   ★ 每日抓取（零 token 独立版，见下「每日抓取」）
 │   ├── daily_sync.bat/.sh    #   ★ 计划任务 / cron 启动器（自动探测 Python）
@@ -50,9 +62,9 @@ job-seeker/
 ├── dist/                     # 构建产物（入库；CI 门禁保证与 src/ 一致）
 │   ├── 00-总览台.html        #   合并版单文件（生产形态，推 4 节点 / 建独立站点）
 │   ├── 0{1,2,3}-*.html       #   4 个独立页面
-│   ├── demo/index.html       #   GitHub Pages 演示
-│   ├── site/index.html       #   独立站点（私人版，含个人数据快照）
-│   └── public/index.html     #   公开版站点（仅岗位快照，可对外分享）
+│   ├── demo/index.html       #   离线 Demo（GitHub Pages 的 /demo/ 子路径）
+│   ├── site/index.html       #   私人站点版（含个人数据快照）—— **不入库**
+│   └── public/index.html     #   公开版（GitHub Pages 站根，对外交付形态）
 └── docs/                     # 历史规划文档
 ```
 
@@ -88,6 +100,9 @@ CI（`.github/workflows/lint.yml`）在每次 push 时执行：YAML 解析 → �
 ```
 牛客校招日程(tab=3) ──► src/seed/seed.json（增量合并）──► dist/site + dist/public
 ```
+
+> `src/seed/seed.json` 是全量快照，**不入库**（含个人投递数据）。仓库里入库的是只含岗位的 `seed.public.json`；
+> 在全新克隆的仓库上构建时若本机没有全量快照，`build_site.py` / `build_public.py` 会自动回落到它（公开版产出字节与用全量快照时完全一致）。
 
 ```bash
 python3 scripts/daily_sync.py              # 抓取 + 合并 + 重建产物
@@ -139,4 +154,5 @@ printf '<token>\n' | python3 scripts/sync_autumn_all.py
 - 数据表：秋招 `GgZ71tywhs4HEZytFSqXTP` / 投递 `oBGkMFTv9Xv4Xn5gFOK18S` / 实习 `tgH8096uENTaIj8RSY9qm5` / 收件箱 `EdCHnKtjZIXEw37tUmvhqL`
 - 用户数据只存浏览器本机；唯一写云动作均需人工确认
 - **公开版是隐私边界**：只内嵌 `jobs` 表且剔除「示例预置」行，投递 / 实习 / 收件箱三表**不进产物**，localStorage 用独立的 `qc_*` 命名空间 —— 由 CI 隐私门禁强制
+- **仓库里不含任何个人数据**：全量快照 `src/seed/seed.json` 与私人站点版产物 `dist/site/` 都被 `.gitignore` 排除，只存在于作者本机；入库的只有只含岗位的 `seed.public.json` 与对外形态 `dist/public/index.html`
 - 大段共享 JS 写成独立常量挂拼接链（`THEME_JS` / `AI_CORE_JS` / `MATCH_JS` 等），见 `src/build_pages.py`

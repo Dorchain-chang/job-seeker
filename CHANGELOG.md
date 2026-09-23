@@ -4,7 +4,26 @@ Job Seeker · 秋招岗位与投递管理台。按版本倒序记录，日期为
 
 - 在线站点：<https://job-hunt-desk-78822.app.workbuddy.host/>
 - 仓库：<https://github.com/Dorchain-chang/job-seeker>（v42 起迁移至此；旧仓库 [Dorchain-chang/-](https://github.com/Dorchain-chang/-) 为 v27–v41 历史，只读归档）
-- GitHub Pages 演示（离线数据版）：由 CI 自动发布
+- **公开版（交付 / 分享用）**：<https://dorchain-chang.github.io/job-seeker/>
+- 演示版（离线 mock 数据）：<https://dorchain-chang.github.io/job-seeker/demo/>
+
+---
+
+## v46 · 2026-09-23 · 交付硬化：隐私剥离 + GitHub Pages 换对外形态
+
+仓库是公开的，但按 v41 / v43 的设计，全量快照 `src/seed/seed.json` 与私人站点版产物
+`dist/site/index.html` 都内嵌了作者真实的投递记录，随仓库一起公开；
+同时 GitHub Pages 部署的是 mock 演示数据版，客户打开看不到真实岗位。
+
+- **隐私剥离**：全量快照与私人站点版产物移出 Git 追踪（`.gitignore`），只留本机。
+  新增只含岗位的 `src/seed/seed.public.json` 入库，供 CI 与「本机无全量快照」时兜底 ——
+  `build_site.py` / `build_public.py` 都会自动回落，公开版产出字节与用全量快照时完全一致
+- **历史重写**：用 `git filter-repo` 从全部历史提交中移除这两个文件，配 force push。
+  公开仓库（含全部历史）已不含任何个人投递数据
+- **GitHub Pages 换对外形态**：站点根由 mock 演示版改为**公开版**（只含岗位快照、
+  无任何个人数据、访客首开自选起点）；原演示版保留在 `/demo/` 子路径
+- **CI 适配**：lint 与 smoke 两个 job 在构建前补一步「无全量快照则用公开快照兜底」，
+  产物一致性与页数校验照旧
 
 ---
 

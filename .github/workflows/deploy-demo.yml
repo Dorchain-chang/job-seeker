@@ -1,4 +1,4 @@
-name: Deploy demo to GitHub Pages
+name: Deploy site to GitHub Pages
 
 on:
   push:
@@ -32,14 +32,17 @@ jobs:
           # enablement: true 让它顺手把 Pages 打开（build_type=workflow）。
           enablement: true
 
-      # 站点根目录 = dist/demo/ 的内容本身。只有一个 index.html
-      # （合并版单文件应用 + localStorage mock，页内 Tab 切换，无跨页跳转）。
+      # 站点根 = 公开版（dist/public）：它是唯一对外交付的形态，只内嵌岗位快照，
+      # 不含作者任何投递 / 实习 / 收件箱数据，访客首次打开自选「用内置快照」或
+      # 「从空白开始」，个人数据一律留在访客本机。
+      # 演示版（localStorage mock 数据）保留在 /demo/ 子路径。
       # 不要把整个仓库当站点根上传，否则 .github、src/ 都会被公网访问到。
       - name: Build site into _site
         run: |
           set -e
-          rm -rf _site && mkdir -p _site
-          cp dist/demo/*.html _site/
+          rm -rf _site && mkdir -p _site/demo
+          cp dist/public/index.html _site/index.html
+          cp dist/demo/index.html   _site/demo/index.html
           cp README.md _site/README.md
           touch _site/.nojekyll
           ls -R _site

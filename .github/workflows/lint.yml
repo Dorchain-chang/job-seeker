@@ -139,6 +139,17 @@ jobs:
           fi
           echo "OK  公开版无隐私残留（三表真实 id / 隐私表数据行 / qz_ 前缀均未出现）"
 
+      # 全量快照 src/seed/seed.json 不入库 —— 它含作者真实投递/实习/收件箱记录，
+      # 而本仓库是公开的。CI 用只含岗位的公开快照兜底，保证 site / public
+      # 两个产物仍能被完整构建与校验（public 产出的字节与全量快照一致）。
+      - name: Provide seed for CI builds
+        run: |
+          set -e
+          if [ ! -f src/seed/seed.json ]; then
+            cp src/seed/seed.public.json src/seed/seed.json
+            echo "OK  仓库无全量快照，已用 seed.public.json 兜底（只含岗位，无个人数据）"
+          fi
+
       - name: Verify generated files are up to date
         run: |
           set -e
@@ -207,6 +218,9 @@ jobs:
       # 必须保证既补得上、又不冲掉用户已有数据、重复刷新不翻倍。
       - name: Build standalone site
         run: |
+          set -e
+          # 全量快照不入库（含个人数据），用公开快照兜底 —— 站点仍是完整可构建的
+          [ -f src/seed/seed.json ] || cp src/seed/seed.public.json src/seed/seed.json
           python3 src/build_site.py
           python3 src/build_public.py
 

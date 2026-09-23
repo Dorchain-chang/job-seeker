@@ -24,6 +24,8 @@ from pathlib import Path
 
 HERE = Path(__file__).parent
 SEED = HERE / 'seed' / 'seed.json'
+# 全量快照不入库（含个人数据）；公开快照只含 jobs，入库供 CI 与本机兜底
+SEED_PUBLIC = HERE / 'seed' / 'seed.public.json'
 
 # 公开版不内嵌的表（作者隐私）。这些表在产物里既没有种子数据，也不会被灌进 localStorage。
 PRIVATE_TABLES = ('apps', 'interns', 'inbox')
@@ -345,9 +347,12 @@ def build_public_seed(full):
 
 
 def main():
-    if not SEED.exists():
-        raise SystemExit('缺少 src/seed/seed.json，先跑 export_seed.py')
-    full = json.loads(SEED.read_text(encoding='utf-8'))
+    src = SEED if SEED.exists() else SEED_PUBLIC
+    if not src.exists():
+        raise SystemExit(
+            '缺少 src/seed/seed.json（全量）与 src/seed/seed.public.json（公开），'
+            '先跑 export_seed.py 或 daily_sync.py')
+    full = json.loads(src.read_text(encoding='utf-8'))
     seed, jobs = build_public_seed(full)
     schema = build_options()
     head = ('<script>window.__SITE_SEED__=' + json.dumps(seed, ensure_ascii=False)

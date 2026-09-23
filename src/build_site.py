@@ -15,6 +15,9 @@ from pathlib import Path
 
 HERE = Path(__file__).parent
 SEED = HERE / 'seed' / 'seed.json'
+# 全量快照含作者个人投递/实习/收件箱记录，仓库是公开的 → 不入库。
+# 公开快照（只含岗位）入库，供 CI 构建以及「本机没有全量快照」时兜底。
+SEED_PUBLIC = HERE / 'seed' / 'seed.public.json'
 
 SITE_ADAPTER = r"""
 /* === STANDALONE SITE ADAPTER（独立站点：本机存储 + 备份） ============ */
@@ -272,9 +275,15 @@ def patch(src):
 
 
 def main():
-    if not SEED.exists():
-        raise SystemExit('缺少 pages/seed/seed.json，先跑 export_seed.py')
-    seed = json.loads(SEED.read_text(encoding='utf-8'))
+    src = SEED if SEED.exists() else SEED_PUBLIC
+    if not src.exists():
+        raise SystemExit(
+            '缺少 src/seed/seed.json（全量）与 src/seed/seed.public.json（公开），'
+            '先跑 export_seed.py 或 daily_sync.py')
+    if src is SEED_PUBLIC:
+        print('[note] 本机无全量快照，回落到 seed.public.json：'
+              '站点版只含岗位，没有投递/实习记录')
+    seed = json.loads(src.read_text(encoding='utf-8'))
     schema = build_options()
     head = ('<script>window.__SITE_SEED__=' + json.dumps(seed, ensure_ascii=False)
             + ';window.__SITE_SCHEMA__=' + json.dumps(schema, ensure_ascii=False) + ';</script>\n')
