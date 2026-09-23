@@ -8,6 +8,10 @@ node_modules/
 
 # 构建副产物（每页 schema 子集，由 build_pages.py 生成）
 src/canonical_*.json
+# 但 canonical_schema.json 是「构建输入」不是副产物：它由 build_pages.py 收窄成上面
+# 那几份 per-page 文件，丢了它全新检出会构建出 options 全空的站点（CI 上表现为
+# dist/site/index.html 与提交版本不一致）。必须入库，否则构建不可复现。
+!src/canonical_schema.json
 
 # 冒烟临时文件
 tests/tmp_*

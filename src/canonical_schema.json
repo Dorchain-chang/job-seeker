@@ -1,0 +1,566 @@
+{
+ "title": "秋招求职台",
+ "page_type": "mixed",
+ "properties": {
+  "公司": {
+   "text": ""
+  },
+  "批次": {
+   "select": {
+    "options": [
+     {
+      "text": "27秋招",
+      "id": "b27qz9m3k8f2x1td"
+     },
+     {
+      "text": "27暑期实习",
+      "id": "b27sxq4n9l3y2uea"
+     },
+     {
+      "text": "27日常实习",
+      "id": "b27rcx5p0m4z3vfb"
+     },
+     {
+      "text": "其他",
+      "id": "b27oth6q1n5a4wgc"
+     }
+    ]
+   }
+  },
+  "岗位方向": {
+   "text": ""
+  },
+  "工作地点": {
+   "text": ""
+  },
+  "优先级": {
+   "select": {
+    "options": [
+     {
+      "text": "P0",
+      "id": "pri0a7r2s8b5x9dh"
+     },
+     {
+      "text": "P1",
+      "id": "pri1b8s3t9c6y0ej"
+     },
+     {
+      "text": "P2",
+      "id": "pri2c9t4u0d7z1fk"
+     }
+    ]
+   }
+  },
+  "投递状态": {
+   "select": {
+    "options": [
+     {
+      "text": "待投递",
+      "id": "stt0d1u5v1e8a2gl"
+     },
+     {
+      "text": "已投递",
+      "id": "sty1e2v6w2f9b3hm"
+     },
+     {
+      "text": "不投了",
+      "id": "stn2f3w7x3g0c4in"
+     }
+    ]
+   }
+  },
+  "网申开始": {
+   "date": "1970-01-01T00:00:00Z"
+  },
+  "截止日期": {
+   "date": "1970-01-01T00:00:00Z"
+  },
+  "投递链接": {
+   "url": ""
+  },
+  "来源": {
+   "select": {
+    "options": [
+     {
+      "text": "邮件",
+      "id": "sY0oIvlkO1Ps"
+     },
+     {
+      "text": "短信",
+      "id": "lqGLhqo3kR41"
+     },
+     {
+      "text": "浏览器扩展",
+      "id": "OMvzjqa2OUiI"
+     }
+    ]
+   }
+  },
+  "备注": {
+   "text": ""
+  },
+  "岗位": {
+   "text": ""
+  },
+  "当前阶段": {
+   "select": {
+    "options": [
+     {
+      "text": "已投递",
+      "id": "ph1a3x8y4h1d5jos"
+     },
+     {
+      "text": "笔试",
+      "id": "ph2b4y9z5i2e6kpt"
+     },
+     {
+      "text": "一面",
+      "id": "ph3c5z0a6j3f7lqu"
+     },
+     {
+      "text": "二面",
+      "id": "ph4d6a1b7k4g8mrv"
+     },
+     {
+      "text": "HR面",
+      "id": "ph5e7b2c8l5h9nsw"
+     },
+     {
+      "text": "Offer",
+      "id": "ph6f8c3d9m6i0otx"
+     },
+     {
+      "text": "感谢信",
+      "id": "ph7g9d4e0n7j1puy"
+     },
+     {
+      "text": "已终止",
+      "id": "SEijMhyZQyf8"
+     }
+    ]
+   }
+  },
+  "投递日期": {
+   "date": "1970-01-01T00:00:00Z"
+  },
+  "下次节点": {
+   "date": "1970-01-01T00:00:00Z"
+  },
+  "节点说明": {
+   "text": ""
+  },
+  "复盘笔记": {
+   "text": ""
+  },
+  "相关链接": {
+   "url": ""
+  },
+  "岗位名称": {
+   "text": ""
+  },
+  "薪资": {
+   "text": ""
+  },
+  "岗位要求": {
+   "text": ""
+  },
+  "牛客ID": {
+   "text": ""
+  },
+  "类型": {
+   "select": {
+    "options": [
+     {
+      "text": "笔试",
+      "id": "1d5D1v9TfdVr"
+     },
+     {
+      "text": "面试",
+      "id": "4Eh00Pg57PP0"
+     },
+     {
+      "text": "Offer",
+      "id": "guLOXuAm2cwr"
+     },
+     {
+      "text": "感谢信",
+      "id": "kdIvWzHwWmrb"
+     },
+     {
+      "text": "其他",
+      "id": "3rJmTFn8Q9pN"
+     }
+    ]
+   }
+  },
+  "状态": {
+   "select": {
+    "options": [
+     {
+      "text": "待确认",
+      "id": "hiye07dnxSkK"
+     },
+     {
+      "text": "已确认",
+      "id": "7WhsNTqF8pOB"
+     },
+     {
+      "text": "已忽略",
+      "id": "wXcxwZU5ugXJ"
+     }
+    ]
+   }
+  },
+  "置信度": {
+   "select": {
+    "options": [
+     {
+      "text": "高",
+      "id": "Mjmow8L38LiY"
+     },
+     {
+      "text": "中",
+      "id": "HX0bwY6BU9Nh"
+     },
+     {
+      "text": "低",
+      "id": "EPLc3kmjKXnx"
+     }
+    ]
+   }
+  },
+  "事项时间": {
+   "date": "1970-01-01T00:00:00Z"
+  },
+  "收件时间": {
+   "date": "1970-01-01T00:00:00Z"
+  },
+  "原文摘要": {
+   "text": ""
+  },
+  "发件人": {
+   "text": ""
+  },
+  "消息ID": {
+   "text": ""
+  }
+ },
+ "field_mapping": {
+  "公司": {
+   "value_type": "text",
+   "form_input": "[name=\"company\"]",
+   "display_selector": "[data-field=\"公司\"]",
+   "render_signal": "卡片:公司名称"
+  },
+  "批次": {
+   "value_type": "select",
+   "form_input": "[name=\"batch\"]",
+   "display_selector": "[data-field=\"批次\"]",
+   "render_signal": "卡片:批次",
+   "options_value_key": "value"
+  },
+  "岗位方向": {
+   "value_type": "text",
+   "form_input": "[name=\"direction\"]",
+   "display_selector": "[data-field=\"岗位方向\"]",
+   "render_signal": "卡片:岗位方向"
+  },
+  "工作地点": {
+   "value_type": "text",
+   "form_input": "[name=\"location\"]",
+   "display_selector": "[data-field=\"工作地点\"]",
+   "render_signal": "卡片:工作地点"
+  },
+  "优先级": {
+   "value_type": "select",
+   "form_input": "[name=\"priority\"]",
+   "display_selector": "[data-field=\"优先级\"]",
+   "render_signal": "卡片:优先级",
+   "options_value_key": "value"
+  },
+  "投递状态": {
+   "value_type": "select",
+   "form_input": null,
+   "display_selector": "[data-field=\"投递状态\"]",
+   "render_signal": "卡片:投递状态",
+   "options_value_key": "value"
+  },
+  "网申开始": {
+   "value_type": "date",
+   "form_input": null,
+   "display_selector": "[data-field=\"网申开始\"]",
+   "render_signal": "卡片:网申开始"
+  },
+  "截止日期": {
+   "value_type": "date",
+   "form_input": "[name=\"deadline\"]",
+   "display_selector": "[data-field=\"截止日期\"]",
+   "render_signal": "卡片:截止日期"
+  },
+  "投递链接": {
+   "value_type": "url",
+   "form_input": "[name=\"jlink\"]",
+   "display_selector": "[data-field=\"投递链接\"]",
+   "render_signal": "卡片:投递链接"
+  },
+  "来源": {
+   "value_type": "text",
+   "form_input": null,
+   "display_selector": "[data-field=\"来源\"]",
+   "render_signal": "卡片:来源"
+  },
+  "备注": {
+   "value_type": "text",
+   "form_input": "[name=\"jnote\"]",
+   "display_selector": "[data-field=\"备注\"]",
+   "render_signal": "卡片:备注"
+  },
+  "岗位": {
+   "value_type": "text",
+   "form_input": "[name=\"position\"]",
+   "display_selector": "[data-field=\"岗位\"]",
+   "render_signal": "卡片:岗位"
+  },
+  "当前阶段": {
+   "value_type": "select",
+   "form_input": "[name=\"stage\"]",
+   "display_selector": "[data-field=\"当前阶段\"]",
+   "render_signal": "卡片:当前阶段",
+   "options_value_key": "value"
+  },
+  "投递日期": {
+   "value_type": "date",
+   "form_input": "[name=\"applydate\"]",
+   "display_selector": "[data-field=\"投递日期\"]",
+   "render_signal": "卡片:投递日期"
+  },
+  "下次节点": {
+   "value_type": "date",
+   "form_input": "[name=\"nextdate\"]",
+   "display_selector": "[data-field=\"下次节点\"]",
+   "render_signal": "卡片:下次节点"
+  },
+  "节点说明": {
+   "value_type": "text",
+   "form_input": "[name=\"nodedesc\"]",
+   "display_selector": "[data-field=\"节点说明\"]",
+   "render_signal": "卡片:节点说明"
+  },
+  "复盘笔记": {
+   "value_type": "text",
+   "form_input": null,
+   "display_selector": "[data-field=\"复盘笔记\"]",
+   "render_signal": "卡片:复盘笔记"
+  },
+  "相关链接": {
+   "value_type": "url",
+   "form_input": "[name=\"alnk\"]",
+   "display_selector": "[data-field=\"相关链接\"]",
+   "render_signal": "卡片:相关链接"
+  },
+  "岗位名称": {
+   "value_type": "text",
+   "form_input": "[name=\"position\"]",
+   "display_selector": "[data-field=\"岗位名称\"]",
+   "render_signal": "卡片:岗位名称"
+  },
+  "薪资": {
+   "value_type": "text",
+   "form_input": "[name=\"salary\"]",
+   "display_selector": "[data-field=\"薪资\"]",
+   "render_signal": "卡片:薪资"
+  },
+  "岗位要求": {
+   "value_type": "text",
+   "form_input": "[name=\"req\"]",
+   "display_selector": "[data-field=\"岗位要求\"]",
+   "render_signal": "卡片:岗位要求"
+  },
+  "牛客ID": {
+   "value_type": "text",
+   "form_input": null,
+   "display_selector": null,
+   "render_signal": "公司情报面板深链（牛客企业主页/面经/真题/薪资/讨论）"
+  },
+  "类型": {
+   "value_type": "select",
+   "form_input": null,
+   "display_selector": "[data-field=\"类型\"]",
+   "render_signal": "收件箱:类型",
+   "options_value_key": "text"
+  },
+  "事项时间": {
+   "value_type": "date",
+   "form_input": null,
+   "display_selector": "[data-field=\"事项时间\"]",
+   "render_signal": "收件箱:事项时间"
+  },
+  "原文摘要": {
+   "value_type": "text",
+   "form_input": null,
+   "display_selector": "[data-field=\"原文摘要\"]",
+   "render_signal": "收件箱:原文摘要"
+  },
+  "发件人": {
+   "value_type": "text",
+   "form_input": null,
+   "display_selector": "[data-field=\"发件人\"]",
+   "render_signal": "收件箱:发件人"
+  },
+  "置信度": {
+   "value_type": "select",
+   "form_input": null,
+   "display_selector": "[data-field=\"置信度\"]",
+   "render_signal": "收件箱:置信度",
+   "options_value_key": "text"
+  }
+ },
+ "options_map": {
+  "批次": {
+   "b27qz9m3k8f2x1td": {
+    "text": "27秋招",
+    "id": "b27qz9m3k8f2x1td"
+   },
+   "b27sxq4n9l3y2uea": {
+    "text": "27暑期实习",
+    "id": "b27sxq4n9l3y2uea"
+   },
+   "b27rcx5p0m4z3vfb": {
+    "text": "27日常实习",
+    "id": "b27rcx5p0m4z3vfb"
+   },
+   "b27oth6q1n5a4wgc": {
+    "text": "其他",
+    "id": "b27oth6q1n5a4wgc"
+   }
+  },
+  "优先级": {
+   "pri0a7r2s8b5x9dh": {
+    "text": "P0",
+    "id": "pri0a7r2s8b5x9dh"
+   },
+   "pri1b8s3t9c6y0ej": {
+    "text": "P1",
+    "id": "pri1b8s3t9c6y0ej"
+   },
+   "pri2c9t4u0d7z1fk": {
+    "text": "P2",
+    "id": "pri2c9t4u0d7z1fk"
+   }
+  },
+  "投递状态": {
+   "stt0d1u5v1e8a2gl": {
+    "text": "待投递",
+    "id": "stt0d1u5v1e8a2gl"
+   },
+   "sty1e2v6w2f9b3hm": {
+    "text": "已投递",
+    "id": "sty1e2v6w2f9b3hm"
+   },
+   "stn2f3w7x3g0c4in": {
+    "text": "不投了",
+    "id": "stn2f3w7x3g0c4in"
+   }
+  },
+  "当前阶段": {
+   "ph1a3x8y4h1d5jos": {
+    "text": "已投递",
+    "id": "ph1a3x8y4h1d5jos"
+   },
+   "ph2b4y9z5i2e6kpt": {
+    "text": "笔试",
+    "id": "ph2b4y9z5i2e6kpt"
+   },
+   "ph3c5z0a6j3f7lqu": {
+    "text": "一面",
+    "id": "ph3c5z0a6j3f7lqu"
+   },
+   "ph4d6a1b7k4g8mrv": {
+    "text": "二面",
+    "id": "ph4d6a1b7k4g8mrv"
+   },
+   "ph5e7b2c8l5h9nsw": {
+    "text": "HR面",
+    "id": "ph5e7b2c8l5h9nsw"
+   },
+   "ph6f8c3d9m6i0otx": {
+    "text": "Offer",
+    "id": "ph6f8c3d9m6i0otx"
+   },
+   "ph7g9d4e0n7j1puy": {
+    "text": "感谢信",
+    "id": "ph7g9d4e0n7j1puy"
+   },
+   "SEijMhyZQyf8": {
+    "text": "已终止",
+    "id": "SEijMhyZQyf8"
+   }
+  },
+  "类型": {
+   "1d5D1v9TfdVr": {
+    "text": "笔试",
+    "id": "1d5D1v9TfdVr"
+   },
+   "4Eh00Pg57PP0": {
+    "text": "面试",
+    "id": "4Eh00Pg57PP0"
+   },
+   "guLOXuAm2cwr": {
+    "text": "Offer",
+    "id": "guLOXuAm2cwr"
+   },
+   "kdIvWzHwWmrb": {
+    "text": "感谢信",
+    "id": "kdIvWzHwWmrb"
+   },
+   "3rJmTFn8Q9pN": {
+    "text": "其他",
+    "id": "3rJmTFn8Q9pN"
+   }
+  },
+  "来源": {
+   "sY0oIvlkO1Ps": {
+    "text": "邮件",
+    "id": "sY0oIvlkO1Ps"
+   },
+   "lqGLhqo3kR41": {
+    "text": "短信",
+    "id": "lqGLhqo3kR41"
+   },
+   "OMvzjqa2OUiI": {
+    "text": "浏览器扩展",
+    "id": "OMvzjqa2OUiI"
+   }
+  },
+  "状态": {
+   "hiye07dnxSkK": {
+    "text": "待确认",
+    "id": "hiye07dnxSkK"
+   },
+   "7WhsNTqF8pOB": {
+    "text": "已确认",
+    "id": "7WhsNTqF8pOB"
+   },
+   "wXcxwZU5ugXJ": {
+    "text": "已忽略",
+    "id": "wXcxwZU5ugXJ"
+   }
+  },
+  "置信度": {
+   "Mjmow8L38LiY": {
+    "text": "高",
+    "id": "Mjmow8L38LiY"
+   },
+   "HX0bwY6BU9Nh": {
+    "text": "中",
+    "id": "HX0bwY6BU9Nh"
+   },
+   "EPLc3kmjKXnx": {
+    "text": "低",
+    "id": "EPLc3kmjKXnx"
+   }
+  }
+ },
+ "source": "agent_analysis",
+ "sdk_calls_found": false
+}

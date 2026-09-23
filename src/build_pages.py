@@ -4017,10 +4017,15 @@ def main():
     dist.mkdir(exist_ok=True)
     # read original canonical schema if exists
     canon_path = here / "canonical_schema.json"
-    if canon_path.exists():
-        full = json.loads(canon_path.read_text(encoding="utf-8"))
-    else:
-        full = {"properties": {}, "field_mapping": {}, "options_map": {}}
+    # 注意：canonical_schema.json 是「构建输入」，不是副产物（副产物是下面生成的
+    # canonical_{autumn,intern,overview,soe}.json）。少了它每页 schema 的 options
+    # 会全空，站点下拉/筛选直接失效，且 CI 的「产物与脚本一致」门禁必红。
+    # 宁可构建失败，也不要静默产出一份残页。
+    if not canon_path.exists():
+        raise SystemExit('缺少 src/canonical_schema.json（构建输入，必须入库）')
+    full = json.loads(canon_path.read_text(encoding="utf-8"))
+    if not full.get("properties"):
+        raise SystemExit('src/canonical_schema.json 里没有 properties，字段规范是空的')
 
     p_over = _wrap_marker("00-总览台.html", page_overview(URLS))
     p_aut = _wrap_marker("01-秋招岗位台.html", page_autumn(URLS))
