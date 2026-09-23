@@ -197,18 +197,21 @@ SITE_ADAPTER = r"""
     localStorage.setItem('qz_seeded',seed.exportedAt||'1');
     location.reload();
   }
-  document.addEventListener('DOMContentLoaded',function(){
-    var bar=document.createElement('div');
-    bar.style.cssText='position:relative;z-index:99;background:#171717;color:#d4d4d4;text-align:center;padding:7px 12px;font-size:12.5px;line-height:1.6';
-    var tip=SYNC_ADDED>0?('· '+(SYNC_FIRST?'已载入 ':'本次新增 ')+SYNC_ADDED+' 个岗位 · '):'· ';
-    bar.innerHTML='独立站点版：数据保存在本机浏览器（不上传服务器）'+tip+'换设备或怕丢请先导出备份 '
-      +'<a href="javascript:void(0)" id="qzExp" style="color:#fff;text-decoration:underline;margin-left:6px">导出备份</a> '
-      +'<a href="javascript:void(0)" id="qzImp" style="color:#fff;text-decoration:underline;margin-left:6px">导入备份</a> '
-      +'<a href="javascript:void(0)" id="qzRst" style="color:#f2c1c3;text-decoration:underline;margin-left:6px">重置为最新快照</a>';
-    document.body.insertBefore(bar,document.body.firstChild);
+  // 侧栏底部：数据操作（导出 / 导入 / 重置），挂进 nav.tabbar .inner 末尾的 #snOps
+  function mountOps(note){
+    var host=document.getElementById('snOps');
+    if(!host)return;
+    var tip=SYNC_ADDED>0?('（'+(SYNC_FIRST?'已载入 ':'本次新增 ')+SYNC_ADDED+' 个岗位）'):'';
+    host.innerHTML='<div class="snote">'+note+tip+'</div>'
+      +'<button type="button" class="so" id="qzExp">导出备份</button>'
+      +'<button type="button" class="so pri" id="qzImp">导入备份</button>'
+      +'<button type="button" class="so danger" id="qzRst">重置为最新快照</button>';
     var e=document.getElementById('qzExp');if(e)e.onclick=doExport;
     var i2=document.getElementById('qzImp');if(i2)i2.onclick=doImport;
     var r2=document.getElementById('qzRst');if(r2)r2.onclick=doReset;
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    mountOps('数据保存在本机浏览器，不上传服务器');
   });
 })();
 /* === END STANDALONE SITE ADAPTER ====================================== */

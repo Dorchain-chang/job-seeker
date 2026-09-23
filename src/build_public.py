@@ -230,19 +230,18 @@ PUBLIC_ADAPTER = r"""
     var seedCnt=((window.__SITE_SEED__||{}).jobs||[]).length;
     var mask=document.createElement('div');
     mask.id='qcAskMask';
-    mask.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(23,23,23,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+    mask.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:20px;transform:translateZ(0)';
     var card=document.createElement('div');
-    card.style.cssText='background:#fff;border-radius:14px;max-width:440px;width:100%;padding:22px 22px 18px;box-shadow:0 12px 40px rgba(0,0,0,.28)';
+    card.style.cssText='background:#fff;border-radius:3px;border-top:4px solid #0b5cff;max-width:440px;width:100%;padding:22px 22px 18px;box-shadow:0 12px 40px rgba(15,23,42,.28)';
     card.innerHTML='<div style="font-size:16px;font-weight:800;margin-bottom:6px">欢迎使用 Job Seeker</div>'
-      +'<div style="font-size:13px;color:#666;line-height:1.7;margin-bottom:16px">这是一份可以自己用的求职工作台。你的数据全部保存在<b>你自己浏览器</b>里，不会上传到任何服务器。<br>先选一个起点：</div>'
-      +'<button type="button" id="qcPickSeed" style="display:block;width:100%;text-align:left;border:1px solid #e5e5e5;background:#fafafa;border-radius:10px;padding:12px 14px;cursor:pointer;font-family:inherit;margin-bottom:10px">'
-      +'<b style="font-size:14px">载入岗位库</b><span style="font-size:12px;color:#666;display:block;margin-top:3px">内置 '+seedCnt+' 条牛客校招岗位，按截止日期跟进</span></button>'
-      +'<button type="button" id="qcPickEmpty" style="display:block;width:100%;text-align:left;border:1px solid #e5e5e5;background:#fafafa;border-radius:10px;padding:12px 14px;cursor:pointer;font-family:inherit">'
-      +'<b style="font-size:14px">从空白开始</b><span style="font-size:12px;color:#666;display:block;margin-top:3px">岗位库留空，只记我自己的投递记录</span></button>'
-      +'<div style="font-size:11.5px;color:#999;margin-top:12px;line-height:1.6">之后可以在顶部工具条「重置为最新快照」里重新载入岗位库。</div>';
+      +'<div style="font-size:13px;color:#64748b;line-height:1.7;margin-bottom:16px">这是一份可以自己用的求职工作台。你的数据全部保存在<b>你自己浏览器</b>里，不会上传到任何服务器。<br>先选一个起点：</div>'
+      +'<button type="button" id="qcPickSeed" style="display:block;width:100%;text-align:left;border:1px solid #b9cdfd;background:#e8efff;border-radius:0;padding:12px 14px;cursor:pointer;font-family:inherit;margin-bottom:10px">'
+      +'<b style="font-size:14px;color:#0b5cff">载入岗位库</b><span style="font-size:12px;color:#64748b;display:block;margin-top:3px">内置 '+seedCnt+' 条牛客校招岗位，按截止日期跟进</span></button>'
+      +'<button type="button" id="qcPickEmpty" style="display:block;width:100%;text-align:left;border:1px solid #d7dee8;background:#fff;border-radius:0;padding:12px 14px;cursor:pointer;font-family:inherit">'
+      +'<b style="font-size:14px;color:#0f172a">从空白开始</b><span style="font-size:12px;color:#64748b;display:block;margin-top:3px">岗位库留空，只记我自己的投递记录</span></button>'
+      +'<div style="font-size:11.5px;color:#94a3b8;margin-top:12px;line-height:1.6">之后可以在侧栏底部「重置为最新快照」里重新载入岗位库。</div>';
     mask.appendChild(card);
-    // 追加到 body 末尾，不要 insertBefore(firstChild)：
-    // 顶部工具条 bar 靠 insertBefore 抢到 firstElementChild，冒烟测试会读它。
+    // 弹层必须追加到 body 末尾盖住整页；侧栏底部操作区由 mountOps 注入 #snOps。
     document.body.appendChild(mask);
     function pick(v,empty){
       try{ localStorage.setItem(PFX+'pubAsked',v); }catch(e){}
@@ -252,18 +251,21 @@ PUBLIC_ADAPTER = r"""
     card.querySelector('#qcPickSeed').onclick=function(){ pick('seed',false) };
     card.querySelector('#qcPickEmpty').onclick=function(){ pick('empty',true) };
   }
-  document.addEventListener('DOMContentLoaded',function(){
-    var bar=document.createElement('div');
-    bar.style.cssText='position:relative;z-index:99;background:#171717;color:#d4d4d4;text-align:center;padding:7px 12px;font-size:12.5px;line-height:1.6';
-    var tip=SYNC_ADDED>0?('· '+(SYNC_FIRST?'已载入 ':'本次新增 ')+SYNC_ADDED+' 个岗位 · '):'· ';
-    bar.innerHTML='公开版：数据保存在本机浏览器（不上传服务器）'+tip+'换设备或怕丢请先导出备份 '
-      +'<a href="javascript:void(0)" id="qcExp" style="color:#fff;text-decoration:underline;margin-left:6px">导出备份</a> '
-      +'<a href="javascript:void(0)" id="qcImp" style="color:#fff;text-decoration:underline;margin-left:6px">导入备份</a> '
-      +'<a href="javascript:void(0)" id="qcRst" style="color:#f2c1c3;text-decoration:underline;margin-left:6px">重置为最新快照</a>';
-    document.body.insertBefore(bar,document.body.firstChild);
+  // 侧栏底部：数据操作（导出 / 导入 / 重置），挂进 nav.tabbar .inner 末尾的 #snOps
+  function mountOps(note){
+    var host=document.getElementById('snOps');
+    if(!host)return;
+    var tip=SYNC_ADDED>0?('（'+(SYNC_FIRST?'已载入 ':'本次新增 ')+SYNC_ADDED+' 个岗位）'):'';
+    host.innerHTML='<div class="snote">'+note+tip+'</div>'
+      +'<button type="button" class="so" id="qcExp">导出备份</button>'
+      +'<button type="button" class="so pri" id="qcImp">导入备份</button>'
+      +'<button type="button" class="so danger" id="qcRst">重置为最新快照</button>';
     var e=document.getElementById('qcExp');if(e)e.onclick=doExport;
     var i2=document.getElementById('qcImp');if(i2)i2.onclick=doImport;
     var r2=document.getElementById('qcRst');if(r2)r2.onclick=doReset;
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    mountOps('数据保存在你的浏览器，不上传服务器');
     if(!asked()) askOnce();
   });
 })();

@@ -73,20 +73,37 @@ function seedState(has) {
     if (IS_PUBLIC) {
       const hasAsk = await page.evaluate(() => !!document.getElementById('qcAskMask'));
       if (!hasAsk) errors.push('A: 全新访客应看到起点选择弹层');
-      // 工具条必须仍是 body.firstElementChild（弹层用 appendChild 挂在末尾）
-      const firstIsBar = await page.evaluate(() => {
-        const b = document.body.firstElementChild;
-        return !!b && !b.id.startsWith('qcAskMask');
+      // 侧栏底部操作区必须挂在 nav.tabbar 内，起点弹层只能追加在 body 末尾
+      const mountOk = await page.evaluate(() => {
+        const ops = document.getElementById('snOps');
+        const mask = document.getElementById('qcAskMask');
+        if (!ops) return 'no-snOps';
+        if (!mask) return 'no-mask';
+        if (!ops.closest('nav.tabbar')) return 'snOps-not-in-nav';
+        if (document.body.firstElementChild === mask) return 'mask-stole-first-child';
+        const mz = parseInt(getComputedStyle(mask).zIndex, 10) || 0;
+        const nv = document.querySelector('nav.tabbar');
+        const nz = nv ? (parseInt(getComputedStyle(nv).zIndex, 10) || 0) : 0;
+        if (mz <= nz) return 'mask-below-nav';
+        const hit = document.elementFromPoint(90, 400);
+        if (!hit || !(hit === mask || mask.contains(hit))) return 'mask-not-covering-sidebar';
+        return 'ok';
       });
-      if (!firstIsBar) errors.push('A: 起点弹层把工具条挤出了 firstElementChild');
+      if (mountOk !== 'ok') errors.push('A: 侧栏操作区/弹层挂载位置异常 -> ' + mountOk);
       await page.click('#qcPickSeed');
       await page.waitForTimeout(1500);
     }
     const n = await page.evaluate(k => JSON.parse(localStorage.getItem(k) || '[]').length, LS + 'jobs');
     const bar = await page.evaluate(() => {
-      const b = document.body.firstElementChild;
-      return b ? b.textContent.slice(0, 80) : '';
+      const b = document.getElementById('snOps');
+      return b ? b.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : '';
     });
+    if (!bar) errors.push('A: 侧栏底部操作区 #snOps 为空（mountOps 未生效）');
+    const opsBtns = await page.evaluate(() => {
+      const o = document.getElementById('snOps');
+      return o ? Array.from(o.querySelectorAll('.so')).map(x => x.textContent.trim()) : [];
+    });
+    if (opsBtns.length !== 3) errors.push('A: 侧栏操作按钮应为 3 个，实际 ' + opsBtns.length);
     console.log('A 全新访客 jobs =', n, '(期望', EXPECT + ')');
     console.log('A 工具条文案:', JSON.stringify(bar));
     if (n !== EXPECT) errors.push('A: 首次灌入条数不对 ' + n + ' 期望 ' + EXPECT);

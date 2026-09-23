@@ -176,6 +176,7 @@ NAV_SINGLE = """
     <div class="sngroup">配置</div>
     <button type="button" class="tab snsec" data-sec="cfg">AI 配置</button>
     <div class="sync" id="syncBox"><span class="dot"></span><span id="syncTxt">连接中…</span></div>
+    <div class="snops" id="snOps"></div>
   </div>
 </nav>
 """
