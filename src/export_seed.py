@@ -2,7 +2,7 @@
 """导出 4 张资料库表为独立站点用的种子数据（只读）。
 
 stdin 首行: token
-输出: pages/seed/seed.json  {jobs, apps, interns, inbox, exportedAt}
+输出: src/seed/seed.json  {jobs, apps, interns, inbox, exportedAt}
 """
 import json
 import subprocess

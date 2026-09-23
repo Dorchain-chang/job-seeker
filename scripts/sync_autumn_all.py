@@ -8,6 +8,7 @@ stdin 首行: token。
 - 临期优先排序，单次最多新增 60 条，每批 50 条写入
 """
 import json
+import os
 import re
 import subprocess
 import sys

@@ -77,6 +77,35 @@ jobs:
           fi
           echo "OK  合并版标记正确"
 
+      # 公开版是唯一对外发布的形态，必须证明它没带上作者的隐私：
+      # 投递/实习/收件箱三张表的真实 id、以及快照里的 apps/interns/inbox 三个键
+      # 一个都不许出现。命名空间也必须与私有站点版隔离（无 qz_、有 qc_）。
+      - name: Verify public bundle stays privacy-free
+        run: |
+          f=dist/public/index.html
+          if [ ! -f "$f" ]; then echo "FAIL 缺少 $f"; exit 1; fi
+          for rid in oBGkMFTv9Xv4Xn5gFOK18S tgH8096uENTaIj8RSY9qm5 EdCHnKtjZIXEw37tUmvhqL; do
+            if grep -q "$rid" "$f"; then
+              echo "FAIL 公开版残留隐私表真实 id：$rid"
+              exit 1
+            fi
+          done
+          for k in '"apps":' '"interns":' '"inbox":'; do
+            if grep -q "$k" "$f"; then
+              echo "FAIL 公开版快照里仍有表：$k"
+              exit 1
+            fi
+          done
+          if grep -q 'qz_' "$f"; then
+            echo "FAIL 公开版残留私有站点版的 localStorage 命名空间 qz_"
+            exit 1
+          fi
+          if ! grep -q 'qc_' "$f"; then
+            echo "FAIL 公开版未使用自己的 qc_ 命名空间"
+            exit 1
+          fi
+          echo "OK  公开版无隐私残留（三表 id / 三表键 / qz_ 前缀均未出现）"
+
       - name: Verify generated files are up to date
         run: |
           set -e
@@ -84,10 +113,11 @@ jobs:
           python3 src/build_single.py
           python3 src/build_demo.py
           python3 src/build_site.py
+          python3 src/build_public.py
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           if ! git diff --exit-code -- dist; then
             echo "FAIL dist/ 与生成脚本不一致。请在本地跑："
-            echo "    python3 src/build_pages.py && python3 src/build_single.py && python3 src/build_demo.py && python3 src/build_site.py"
+            echo "    python3 src/build_pages.py && python3 src/build_single.py && python3 src/build_demo.py && python3 src/build_site.py && python3 src/build_public.py"
             echo "  然后 git add dist 一起提交。"
             exit 1
           fi
@@ -98,10 +128,12 @@ jobs:
           prod=$(ls dist/*.html 2>/dev/null | wc -l)
           demo=$(ls dist/demo/*.html 2>/dev/null | wc -l)
           site=$(ls dist/site/*.html 2>/dev/null | wc -l)
+          public=$(ls dist/public/*.html 2>/dev/null | wc -l)
           if [ "$prod" -ne 4 ]; then echo "FAIL 期望 4 个生产页，实际 $prod"; exit 1; fi
           if [ "$demo" -ne 1 ]; then echo "FAIL 期望 1 个 demo 页（合并版单文件），实际 $demo"; exit 1; fi
           if [ "$site" -ne 1 ]; then echo "FAIL 期望 1 个站点页，实际 $site"; exit 1; fi
-          echo "OK  $prod 个生产页 / $demo 个 demo 页 / $site 个站点页"
+          if [ "$public" -ne 1 ]; then echo "FAIL 期望 1 个公开版页，实际 $public"; exit 1; fi
+          echo "OK  $prod 个生产页 / $demo 个 demo 页 / $site 个站点页 / $public 个公开版页"
 
   smoke:
     # 真浏览器跑一遍：注入 mock SDK（三表岗位数据），验证初始化链路、四个视图渲染、
@@ -141,10 +173,21 @@ jobs:
       # 站点打开时会把快照里「本机还没有」的岗位增量合并进 localStorage，
       # 必须保证既补得上、又不冲掉用户已有数据、重复刷新不翻倍。
       - name: Build standalone site
-        run: python3 src/build_site.py
+        run: |
+          python3 src/build_site.py
+          python3 src/build_public.py
 
       - name: Site snapshot sync smoke test
         run: |
           export NODE_PATH="$PWD/node_modules"
           export CHROME_EXE="$(node -e 'console.log(require(\"playwright-core\").chromium.executablePath())')"
           node tests/smoke_site.js
+
+      # 公开版另跑一轮：同一份冒烟脚本按 SMOKE_MODE=public 切到 dist/public +
+      # qc_ 命名空间，并额外验证「内置快照不含隐私表」「命名空间未串到 qz_」
+      # 「首次打开二选一两条路径」。
+      - name: Public bundle smoke test
+        run: |
+          export NODE_PATH="$PWD/node_modules"
+          export CHROME_EXE="$(node -e 'console.log(require(\"playwright-core\").chromium.executablePath())')"
+          SMOKE_MODE=public node tests/smoke_site.js

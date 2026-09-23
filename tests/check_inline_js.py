@@ -23,9 +23,10 @@ SCRIPT_RE = re.compile(r"<script>\s*(.*?)\s*</script>", re.S)
 
 
 def targets():
-    """页面清单：dist/ 下的全部构建产物（4 独立页 + 合并版 + demo + site）。"""
+    """页面清单：dist/ 下的全部构建产物（4 独立页 + 合并版 + demo + site + public）。"""
     d = ROOT / "dist"
-    found = sorted(d.glob("*.html")) + sorted(d.glob("demo/*.html")) + sorted(d.glob("site/*.html"))
+    found = (sorted(d.glob("*.html")) + sorted(d.glob("demo/*.html"))
+             + sorted(d.glob("site/*.html")) + sorted(d.glob("public/*.html")))
     return [p for p in found if p.is_file()]
 
 

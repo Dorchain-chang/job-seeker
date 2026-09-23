@@ -8,6 +8,22 @@ Job Seeker · 秋招岗位与投递管理台。按版本倒序记录，日期为
 
 ---
 
+## v43 · 2026-09-23 · 公开版站点（可分享的隐私安全形态）
+
+此前只有一个独立站点，它内嵌了**四张表的完整快照** —— 把它分享给别人，等于把自己的 5 条投递记录、14 条实习意向、收件箱情报一起送出去。本版新增一份只面向他人的发布形态。
+
+- **新增 `src/build_public.py`**（构建链第 ⑤ 步，复用 `build_site.py` 的结构）
+  - **只内嵌 `jobs` 表**，且剔除「来源 = 示例预置」的 5 条演示行；`apps` / `interns` / `inbox` **完全不进产物**（实测 729 → 724 条）
+  - **独立 localStorage 命名空间 `qc_*`**，与私人站点版的 `qz_*` 互不干扰（同一浏览器可并存、互不污染）
+  - **访客自选起点**：首次打开弹二选一 —— 「用内置快照开始」或「从空白开始，自己记投递」；选择记在 `qc_pubAsked`，之后不再打扰
+  - 工具条 + 导出 / 导入 / 重置（文件名 `JobSeeker公开版备份_YYYYMMDD.json`）随适配层注入；`qc_*` 数据可自行备份迁移
+- **隐私门禁进 CI**（`lint.yml` 新增步骤）：产物中不得出现三张隐私表的真实 `databaseId`、不得出现 `"apps":` / `"interns":` / `"inbox":` 键、不得残留 `qz_` 前缀，且必须使用 `qc_` —— 任一违反即失败
+- **测试参数化**：`tests/smoke_site.js` 用 `SMOKE_MODE=site|public` 一份脚本跑两种产物（路径 / 前缀 / 期望岗位数 / 端口全部按模式派生），公开版新增场景 D「选空白起点」；`check_inline_js.py` / `check_escapes.py` / 页数校验 / 冒烟 job 同步纳入 `dist/public/`
+- **修复 · `sync_autumn_all.py` 跑不起来**：模块级 `LOG_PATH = os.path.join(...)` 用到 `os` 但从未 `import os`，加载即 `NameError`。已补上（AST 体检确认这是全部 14 个 Python 文件中唯一一处）
+- **修复 · 文档路径过时**：`export_seed.py` docstring 的输出路径由 `pages/seed/seed.json` 更正为 `src/seed/seed.json`
+- **验证**：四构建重跑后 6 个既有产物 SHA1 **逐字节一致**（纯增量）；`smoke_site.js` 两种模式全绿；合并版浏览器冒烟零错误
+- 说明：公开版**尚未发布**，本版只产出 `dist/public/index.html`；发布入口待定
+
 ## v42 · 2026-09-23 · 仓库重组为专业结构
 
 从旧仓库（`pages/` 平铺 + 产物散落根目录）迁移到新仓库，按职责分层。**纯结构迁移，功能零变化。**
@@ -109,5 +125,5 @@ Job Seeker · 秋招岗位与投递管理台。按版本倒序记录，日期为
 ## 版本规则
 
 - 每个版本 = 一次提交，提交信息以 `vNN：` 开头
-- 改动顺序：改 `pages/*.py` → 四构建（`build_pages` → `build_single` → `build_demo` → `build_site`）→ `check_escapes` / `check_js` → 冒烟 → 发布站点与资料库节点 → 同步 `github_repo` → 提交推送
-- 本仓库的 `github_repo/` 目录是同步副本，推送前需手动 `cp` 同步源码与产物
+- 改动顺序：改 `src/*.py` → 五构建（`build_pages` → `build_single` → `build_demo` → `build_site` → `build_public`，顺序铁律）→ `check_workflows` / `check_escapes` / `check_inline_js` → 冒烟（`smoke_browser.js` + `smoke_site.js` 两种模式）→ 发布站点与资料库节点 → 提交推送
+- 产物统一写 `dist/`，CI 会重跑全部构建并比对 `git diff --exit-code -- dist`，产物与源码不一致即失败

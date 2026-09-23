@@ -143,6 +143,9 @@ const MOCK = `
   await page.addInitScript({ content: MOCK });
   // 关掉零配置免费通道：冒烟保持离线确定性（无 Key → Mock），不依赖外网
   await page.addInitScript({ content: 'try{localStorage.setItem("wb_ai_free","0")}catch(e){}' });
+  // 注意：本脚本只跑「合并版/分页面」产物（dist/00-总览台.html 等），它们直接读上面的内存 mock。
+  // dist/site 与 dist/public 是自给自足的离线产物，适配层会用自己的 localStorage 数据库接管
+  // __SMART_PAGE__（覆盖这里的 mock），所以它们不走本脚本 —— 由 tests/smoke_site.js 负责。
   const t0 = Date.now();
   await page.goto('file:///' + TARGET.replace(/\\/g, '/'));
   await page.waitForFunction(() => {

@@ -23,7 +23,7 @@ from pathlib import Path
 
 HERE = Path(__file__).parent
 SRC_DIR = HERE.parent / "src"
-SOURCES = ["build_pages.py", "build_single.py"]
+SOURCES = ["build_pages.py", "build_single.py", "build_public.py"]
 ARTIFACTS = sorted((HERE.parent / "dist").rglob("*.html"))
 
 # Python 会解释的转义：\n \t \r \b \f \v \a \0 \xHH \uHHHH \N{..} \UHHHHHHHH
