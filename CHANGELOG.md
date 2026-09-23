@@ -17,6 +17,8 @@ Job Seeker · 秋招岗位与投递管理台。按版本倒序记录，日期为
 - **CI 门禁适配**：幂等检查改为重跑四构建后 `git diff --exit-code -- dist`；页数校验扩到 4+1+1；内联 JS 检查把 `dist/site/` 纳入范围
 - **脚本去 cwd 化**：全部改为 `__file__` 相对定位；`sync_autumn_all.py` 的写死日志路径改为脚本旁相对路径
 - **清理**：删除根目录产物副本、同步日志、一次性调试脚本（`ab_cache.js` / `audit_data.py` / `check_dups.py` / `verify_autumn.py` / `preflight.py` / `refresh_union.py`）、调试截图、`schema_union.json` 中间产物
+- **修复 · 构建可复现**：`.gitignore` 的 `src/canonical_*.json` 把构建输入 `src/canonical_schema.json` 一起忽略了，全新检出会生成 options 全空的站点（CI 表现为 `dist/site/index.html` 与提交版本不一致）。已加 `!src/canonical_schema.json` 白名单并入库；`build_pages.py` 缺该文件时直接失败，不再静默产出残页
+- **启用 GitHub Pages**：新仓库首次部署前 Pages 未开启，已通过 API 打开（build_type=workflow），`deploy-demo.yml` 自动发布演示站
 
 ## v41 · 2026-09-23 · 每日抓取打通独立站点
 
