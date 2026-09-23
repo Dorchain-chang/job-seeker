@@ -1,0 +1,17 @@
+{
+  "accounts": [
+    { "provider": "qq", "user": "你的QQ号@qq.com", "auth_code": "在QQ邮箱设置-账户-开启IMAP后生成的16位授权码" },
+    { "provider": "gmail", "user": "你@gmail.com", "auth_code": "两步验证-应用专用密码生成的16位密码" }
+  ],
+  "keywords": ["笔试", "面试", "测评", "offer", "录用", "复试", "感谢"],
+  "exclude": ["面经", "经验分享", "攻略", "题库", "回忆版"],
+  "since_days": 3,
+  "max_per_account": 100,
+  "llm": {
+    "_说明": "可选：只在使用 --llm 参数时生效。不填则保持纯关键词规则解析，行为与以前完全一致。",
+    "base": "https://api.deepseek.com/v1",
+    "key": "sk-你的key",
+    "model": "deepseek-chat",
+    "timeout": 25
+  }
+}

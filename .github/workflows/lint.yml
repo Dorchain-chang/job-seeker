@@ -1,0 +1,150 @@
+name: Lint (sanity check)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 坑：不要把多行 python / JS 代码直接写进 `run: |` 块标量里 —— 顶格的代码
+      # 行会被 YAML 当成块外内容，整个 workflow 直接解析失败（GitHub 的表现是
+      # 0 个 job、不到 1 秒就挂的红色运行，没有日志）。多行脚本请放到 tests/ 下。
+
+      - name: Check workflow YAML parses
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check pyyaml || true
+          python3 tests/check_workflows.py
+
+      - name: Check inline JS syntax
+        run: python3 tests/check_inline_js.py
+
+      # 坑：build_pages.py 的 JS 是普通（非 raw）三引号串，JS 里写 \u0000 / \x1f / \b 之类
+      # 会被 Python 先解析成真实控制字符写进 HTML，HTML 解析再换成 U+FFFD，正则直接
+      # 「Range out of order」整页脚本失效——而 node --check 查不出来（文件里是合法字节）。
+      # 这一步专门拦这一类，见 tests/check_escapes.py 顶部说明。
+      - name: Guard against Python-ate JS escapes / raw control chars
+        run: python3 tests/check_escapes.py
+
+      - name: Verify demo stays self-contained
+        run: |
+          for f in dist/demo/*.html; do
+            if ! grep -q "DEMO MODE ADAPTER" "$f"; then
+              echo "FAIL $f 缺少 demo 适配层"
+              exit 1
+            fi
+          done
+          # demo 是纯静态站，导航不能指向生产环境（资料库）节点，否则一点就跳走
+          if grep -q "workbuddy.cn/space/d/" dist/demo/*.html; then
+            echo "FAIL demo 里残留了生产环境链接"
+            grep -n "workbuddy.cn/space/d/" dist/demo/*.html || true
+            exit 1
+          fi
+          # 生产页反过来必须保留真实的资料库 databaseId 字面量
+          if ! grep -q "GgZ71tywhs4HEZytFSqXTP" "dist/00-总览台.html"; then
+            echo "FAIL 生产页丢失了 databaseId 字面量"
+            exit 1
+          fi
+          echo "OK  demo 自包含 / 生产页 databaseId 完整"
+
+      - name: Verify merged app markers
+        run: |
+          # dist/00-总览台.html 是 build_single.py 产出的合并版单文件应用
+          if ! grep -q 'data-view="soe"' "dist/00-总览台.html"; then
+            echo "FAIL dist/00-总览台.html 不是合并版（缺少 data-view 切换）"
+            exit 1
+          fi
+          # 合并版不应该再有任何跨节点跳转链接
+          if grep -q "workbuddy.cn/space/d/" "dist/00-总览台.html"; then
+            echo "FAIL dist/00-总览台.html 里还有生产环境跳转链接"
+            exit 1
+          fi
+          echo "OK  合并版标记正确"
+
+      - name: Verify generated files are up to date
+        run: |
+          set -e
+          python3 src/build_pages.py
+          python3 src/build_single.py
+          python3 src/build_demo.py
+          python3 src/build_site.py
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          if ! git diff --exit-code -- dist; then
+            echo "FAIL dist/ 与生成脚本不一致。请在本地跑："
+            echo "    python3 src/build_pages.py && python3 src/build_single.py && python3 src/build_demo.py && python3 src/build_site.py"
+            echo "  然后 git add dist 一起提交。"
+            exit 1
+          fi
+          echo "OK  生成产物与脚本一致"
+
+      - name: Verify page counts
+        run: |
+          prod=$(ls dist/*.html 2>/dev/null | wc -l)
+          demo=$(ls dist/demo/*.html 2>/dev/null | wc -l)
+          site=$(ls dist/site/*.html 2>/dev/null | wc -l)
+          if [ "$prod" -ne 4 ]; then echo "FAIL 期望 4 个生产页，实际 $prod"; exit 1; fi
+          if [ "$demo" -ne 1 ]; then echo "FAIL 期望 1 个 demo 页（合并版单文件），实际 $demo"; exit 1; fi
+          if [ "$site" -ne 1 ]; then echo "FAIL 期望 1 个站点页，实际 $site"; exit 1; fi
+          echo "OK  $prod 个生产页 / $demo 个 demo 页 / $site 个站点页"
+
+  smoke:
+    # 真浏览器跑一遍：注入 mock SDK（三表岗位数据），验证初始化链路、四个视图渲染、
+    # 筛选、热力图、公司情报深链、PDF/Word 简历上传，以及 db.onUpdated 外部变更自动重拉。
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # dist/ 产物已入库；本地改动构建脚本后必须重新构建并提交，冒烟前也重跑一遍构建
+      - name: Build pages
+        run: |
+          python3 src/build_pages.py
+          python3 src/build_single.py
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright-core@1.63.0
+          npx playwright install --with-deps chromium
+
+      - name: Browser smoke test
+        run: |
+          export NODE_PATH="$PWD/node_modules"
+          export CHROME_EXE="$(node -e 'console.log(require("playwright-core").chromium.executablePath())')"
+          node tests/smoke_browser.js
+
+      # 每日抓取 → 重新发布 → 用户打开自动补新岗位，这条链路靠 smoke_site.js 兜底：
+      # 站点打开时会把快照里「本机还没有」的岗位增量合并进 localStorage，
+      # 必须保证既补得上、又不冲掉用户已有数据、重复刷新不翻倍。
+      - name: Build standalone site
+        run: python3 src/build_site.py
+
+      - name: Site snapshot sync smoke test
+        run: |
+          export NODE_PATH="$PWD/node_modules"
+          export CHROME_EXE="$(node -e 'console.log(require(\"playwright-core\").chromium.executablePath())')"
+          node tests/smoke_site.js

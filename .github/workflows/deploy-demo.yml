@@ -1,0 +1,54 @@
+name: Deploy demo to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          # 仓库第一次跑部署时 Pages 还没被启用，configure-pages 会调
+          # GET /repos/{owner}/{repo}/pages 拿到 404 然后直接失败。
+          # enablement: true 让它顺手把 Pages 打开（build_type=workflow）。
+          enablement: true
+
+      # 站点根目录 = dist/demo/ 的内容本身。只有一个 index.html
+      # （合并版单文件应用 + localStorage mock，页内 Tab 切换，无跨页跳转）。
+      # 不要把整个仓库当站点根上传，否则 .github、src/ 都会被公网访问到。
+      - name: Build site into _site
+        run: |
+          set -e
+          rm -rf _site && mkdir -p _site
+          cp dist/demo/*.html _site/
+          cp README.md _site/README.md
+          touch _site/.nojekyll
+          ls -R _site
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+.DS_Store
+node_modules/
+
+# 本地环境
+.env
+
+# 构建副产物（每页 schema 子集，由 build_pages.py 生成）
+src/canonical_*.json
+
+# 冒烟临时文件
+tests/tmp_*
+
+# 邮件桥本地凭据与运行时文件（授权码绝不入库）
+scripts/mail_config.json
+scripts/mail_seen.json
+scripts/mail_outbox_queue.json
+
+# GitHub Pages 部署临时目录
+_site/
