@@ -478,7 +478,25 @@ const MOCK = `
     for (let i = 1; i < hits.length; i++) if (hits[i].s > hits[i - 1].s + 1e-9) mono = false;
     // 4) 无关问题：必须 0 命中（这是「拒绝作答」的前提）
     const none = window.ragSearch(idx, 'zzzqqqxyzzy 甲乙丙丁戊己庚辛', 5).length;
-    // 5) 卡片：点示例 chip → 出检索片段 + 引用角标；无 Key 时只检索不生成
+    // 4b) Agentic 闭环：路由分档 / 证据自评 / RRF 融合 / 有界主循环 / 引用校验
+    const rG = window.ragRoute ? window.ragRoute('你好') : null;
+    const rS = window.ragRoute ? window.ragRoute('哪些岗位要求 RAG / 知识图谱？') : null;
+    const rM = window.ragRoute ? window.ragRoute('我投递过的哪些公司进面试了，还有哪些岗位 7 天内截止？') : null;
+    const routeOk = !!rG && rG.mode === 'none' && !!rS && rS.mode === 'single' && !!rM && rM.mode === 'multi';
+    const gBad = window.ragGrade ? window.ragGrade([]) : null;
+    const gTop = window.ragGrade ? window.ragGrade(hits) : null;
+    const gradeOk = !!gBad && gBad.lv === 'bad' && !!gTop && ['ok', 'weak'].indexOf(gTop.lv) >= 0;
+    const fused = window.rrfFuse ? window.rrfFuse([[{ i: 7, s: 9, cover: 0.5, hit: 2 }], [{ i: 7, s: 0.4, cover: 0.6, hit: 3 }, { i: 9, s: 0.9, cover: 0.9, hit: 4 }]]) : [];
+    const rrfOk = fused.length === 2 && fused[0].i === 7;
+    const cache = window.ragCorpusCached ? window.ragCorpusCached() : null;
+    const lpBad = cache && window.ragLoop ? window.ragLoop('帮我订一张明天去上海的高铁票', cache) : null;
+    const lpHit = cache && window.ragLoop ? window.ragLoop('哪些岗位要求 RAG / 知识图谱？', cache) : null;
+    const loopOk = !!lpBad && !!lpBad.grade && lpBad.grade.lv === 'bad' && lpBad.rounds.length >= 1 && lpBad.rounds.length <= 3
+      && typeof lpBad.ms === 'number' && lpBad.bestIt >= 1
+      && !!lpHit && !!lpHit.grade && lpHit.grade.lv !== 'bad' && lpHit.hits.length > 0 && typeof lpHit.ms === 'number';
+    const vf = window.ragVerify ? window.ragVerify('结论一【1】' + String.fromCharCode(10) + '结论二【9】' + String.fromCharCode(10) + '这是一条很长的没有任何出处标注的结论内容', 3) : null;
+    const verifyOk = !!vf && vf.bad.length === 1 && vf.bad[0] === 9 && vf.unsup.length === 1 && vf.claims === 3;
+    // 5) 卡片：点示例 chip → 出检索片段 + 引用角标 + 闭环轨迹；无 Key 时只检索不生成
     const sec = document.querySelector('.ragsec');
     const chip = sec ? sec.querySelector('.ragchip') : null;
     if (chip) chip.click();
@@ -488,6 +506,10 @@ const MOCK = `
     const cites = sec ? sec.querySelectorAll('.ragsrc').length : 0;
     const statOk = stat.indexOf('语料') >= 0 && stat.indexOf('本机') >= 0;
     const outOk = out.indexOf('检索演示') >= 0;
+    // 5b) 闭环轨迹面板：可见 + 含路由 / 轮次 / 结论
+    const trBox = sec ? sec.querySelector('.ragtrace') : null;
+    const trTxt = trBox ? trBox.textContent : '';
+    const traceOk = !!trBox && trBox.style.display !== 'none' && trTxt.indexOf('闭环轨迹') >= 0 && trTxt.indexOf('路由') >= 0 && trTxt.indexOf('结论') >= 0;
     // 6) 点引用角标 → 对应原文片段高亮
     const cite = sec ? sec.querySelector('.ragcite') : null;
     let citeOk = false;
@@ -496,6 +518,18 @@ const MOCK = `
     const more = sec ? sec.querySelector('.ragmore') : null;
     let moreOk = true;
     if (more) { const before = more.textContent; more.click(); moreOk = more.textContent !== before; }
+    // 7b) 端到端「拒答」：点「订高铁票」那个示例 → 明确拒答且不出片段
+    //     注意区块里还有 18 个分组示例，必须按文案定位，不能取「最后一个」
+    const chips = sec ? Array.from(sec.querySelectorAll('.ragchip')) : [];
+    const refuseChip = chips.filter((x) => x.textContent.indexOf('高铁票') >= 0)[0] || null;
+    let refuseOk = false;
+    if (refuseChip) {
+      refuseChip.click();
+      await sleep(250);
+      refuseOk = sec.querySelector('.ragstat').textContent.indexOf('拒绝作答') >= 0
+        && sec.querySelectorAll('.ragsrc').length === 0
+        && sec.querySelector('.ragout').textContent.indexOf('没有与这个问题相关') >= 0;
+    }
     // 8) 岗位页「问资料库」→ 弹窗开 / 关
     const rb = document.querySelector('.ragbtn');
     let openOk = false, closeOk = false;
@@ -503,19 +537,24 @@ const MOCK = `
       rb.click();
       await sleep(80);
       const mask = document.getElementById('ragModal');
-      openOk = !!mask && mask.className.indexOf('open') >= 0 && !!mask.querySelector('.ragq');
+      openOk = !!mask && mask.className.indexOf('open') >= 0 && !!mask.querySelector('.ragq') && !!mask.querySelector('.ragtrace');
       if (mask) { const cb = mask.querySelector('.ragclose'); if (cb) cb.click(); closeOk = document.getElementById('ragModal').className.indexOf('open') < 0; }
     }
     if (oldK != null) localStorage.setItem('wb_ai_key', oldK);
     if (oldR != null) localStorage.setItem('wb_resumes', oldR); else localStorage.removeItem('wb_resumes');
-    return { tokOk, srcOk, srcs: JSON.stringify(srcs), hitOk, mono, none, statOk, outOk, cites, citeOk, moreOk, openOk, closeOk, stat: stat.slice(0, 70), hasBtn: !!rb };
+    return { tokOk, srcOk, srcs: JSON.stringify(srcs), hitOk, mono, none, routeOk, gradeOk, rrfOk, loopOk, verifyOk, traceOk, refuseOk, statOk, outOk, cites, citeOk, moreOk, openOk, closeOk, stat: stat.slice(0, 70), hasBtn: !!rb,
+      lv: lpHit && lpHit.grade ? lpHit.grade.lv : '-', rounds: lpHit ? lpHit.rounds.length : 0,
+      dbg: 'bad[lv=' + (lpBad && lpBad.grade ? lpBad.grade.lv : '-') + ' r=' + (lpBad ? lpBad.rounds.length : -1) + ' ms=' + (lpBad ? lpBad.ms : 'n') + ' best=' + (lpBad ? lpBad.bestIt : -1) + '] hit[lv=' + (lpHit && lpHit.grade ? lpHit.grade.lv : '-') + ' n=' + (lpHit ? lpHit.hits.length : -1) + ' ms=' + (lpHit ? lpHit.ms : 'n') + ' r=' + (lpHit ? lpHit.rounds.length : -1) + ']' };
   });
   if (rag.missing) {
     console.log('RAG 问答: 未找到 ragCorpus/ragAsk/ragTok');
     errors.push('rag module missing');
   } else {
     console.log('RAG 问答: 分词=', rag.tokOk, '| 语料=', rag.srcs, '| 命中=', rag.hitOk, '| 分数单调=', rag.mono, '| 无关问题命中=', rag.none, '| 状态=', rag.statOk, '| 只检索不生成=', rag.outOk, '| 片段=', rag.cites, '| 引用高亮=', rag.citeOk, '| 展开原文=', rag.moreOk, '| 按钮=', rag.hasBtn, '| 弹窗=', rag.openOk, '| 关闭=', rag.closeOk);
+    console.log('RAG 闭环: 路由分档=', rag.routeOk, '| 证据自评=', rag.gradeOk, '| RRF 融合=', rag.rrfOk, '| 有界主循环=', rag.loopOk, '(评级', rag.lv, '轮次', rag.rounds, ')', '| 引用校验=', rag.verifyOk, '| 轨迹面板=', rag.traceOk, '| 端到端拒答=', rag.refuseOk);
+    console.log('RAG 闭环细节:', rag.dbg);
     if (!rag.tokOk || !rag.srcOk || !rag.hitOk || !rag.mono || rag.none !== 0 || !rag.statOk || !rag.outOk || rag.cites < 1 || !rag.citeOk || !rag.moreOk || !rag.openOk || !rag.closeOk) errors.push('rag qa broken');
+    if (!rag.routeOk || !rag.gradeOk || !rag.rrfOk || !rag.loopOk || !rag.verifyOk || !rag.traceOk || !rag.refuseOk) errors.push('rag agentic loop broken');
   }
 
   // 简历档案（多份 + 意向 + Mock 解析）与投递画像（Mock 生成）
@@ -947,7 +986,7 @@ const MOCK = `
   if (!myspace.ragSibling || !myspace.ragCnt) errors.push('rag sibling broken');
   console.log('知识库UI: 语料格=', myspace.ragTileN, '| 已填=', myspace.ragTileFilled, '| 概览=', myspace.ragCntBox, '| 步骤=', myspace.ragSteps, '| 示例问题=', myspace.ragExamples);
   if (myspace.ragTileN < 5 || myspace.ragTileFilled < 5 || !myspace.ragCntBox) errors.push('rag corpus overview broken');
-  if (myspace.ragSteps < 3 || myspace.ragExamples < 6) errors.push('rag guidance broken');
+  if (myspace.ragSteps < 4 || myspace.ragExamples < 6) errors.push('rag guidance broken');
   console.log('任务UI: 统计格=', myspace.taskStatsN, '| 合计=', myspace.taskStatsSum, '| 模板=', myspace.taskTpl, '| 分组=', myspace.taskGroups, '| 分组内有行=', myspace.taskGrouped);
   if (myspace.taskStatsN < 4 || myspace.taskStatsSum < 1 || myspace.taskTpl < 4) errors.push('task stats/templates broken');
   if (myspace.taskGroups < 1 || !myspace.taskGrouped) errors.push('task grouping broken');
