@@ -569,7 +569,7 @@ const MOCK = `
         const a = JSON.parse(localStorage.getItem('wb_resumes') || '[]');
         const last = a[a.length - 1] || {};
         const t = last.text || '';
-        return t.indexOf('KG-RAG') >= 0 && t.indexOf('PyTorch') >= 0 && t.indexOf('窦畅') >= 0;
+        return t.indexOf('KG-RAG') >= 0 && t.indexOf('PyTorch') >= 0 && t.indexOf('张三') >= 0;
       });
       // 清理冒烟数据
       await page.evaluate(() => {
@@ -601,7 +601,7 @@ const MOCK = `
       if (save) save.click();
       const a = JSON.parse(localStorage.getItem('wb_resumes') || '[]');
       const t = (a[a.length - 1] || {}).text || '';
-      return t.indexOf('窦畅') >= 0 && t.indexOf('KG-RAG') >= 0 && t.indexOf('PyTorch') >= 0 && t.indexOf('西南交通大学') >= 0;
+      return t.indexOf('张三') >= 0 && t.indexOf('KG-RAG') >= 0 && t.indexOf('PyTorch') >= 0 && t.indexOf('某某师范大学') >= 0;
     });
     // txt 已不再支持：上传后缓冲为空 → 点保存不会新增简历
     const txtPath = path.join(__dirname, 'tmp_smoke_resume.txt');
