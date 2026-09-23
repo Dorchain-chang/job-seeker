@@ -33,8 +33,10 @@ job-seeker/
 │   ├── canonical_schema.json #   字段规范（构建输入）
 │   └── seed/seed.json        #   站点数据快照（每日抓取后重新导出）
 ├── scripts/                  # 运维与数据管道（手动 / 自动化调用）
-│   ├── deploy_pages.py       #   推送合并版到资料库 4 个节点
-│   ├── sync_interns.py       #   牛客实习批次同步（含技术岗标注）
+│   ├── daily_sync.py         #   ★ 每日抓取（零 token 独立版，见下「每日抓取」）
+│   ├── daily_sync.bat/.sh    #   ★ 计划任务 / cron 启动器（自动探测 Python）
+│   ├── deploy_pages.py       #   推送合并版到资料库 4 个节点（需 token）
+│   ├── sync_interns.py       #   牛客实习批次同步（写资料库，需 token）
 │   ├── sync_nowcoder_autumn.py / sync_autumn_all.py / backfill_nowcoder.py
 │   └── mail_bridge.py        #   IMAP 邮箱 → 收件箱表（授权码走本地配置，不入库）
 ├── tests/                    # 检查与冒烟（CI 全量执行）
@@ -75,13 +77,62 @@ NODE_PATH=<playwright-core 所在 node_modules> node tests/smoke_site.js        
 NODE_PATH=<playwright-core 所在 node_modules> SMOKE_MODE=public node tests/smoke_site.js # 公开版站点，需先跑构建 ②④⑤
 ```
 
-CI（`.github/workflows/lint.yml`）在每次 push 时执行：YAML 解析 → 内联 JS 语法 → 转义守卫 → demo 自包含 → 合并版标记 → **公开版隐私门禁**（三隐私表真实 id / 三表键 / `qz_` 前缀均不得出现）→ **重跑构建后 `git diff --exit-code -- dist`**（产物必须与源码一致）→ 页数校验 → 真浏览器双冒烟（合并版 + 公开版）。
+CI（`.github/workflows/lint.yml`）在每次 push 时执行：YAML 解析 → 内联 JS 语法 → 转义守卫 → demo 自包含 → 合并版标记 → **公开版隐私门禁**（解析快照 JSON：只允许 `exportedAt`/`jobs` 两个键、真实 databaseId 与 `qz_` 不得出现）→ **重跑构建后 `git diff --exit-code -- dist`**（产物必须与源码一致）→ 页数校验 → 真浏览器双冒烟（合并版 + 公开版）。
 
 ## 数据管道
 
-- **每日抓取**（外部自动化，非本仓库 CI）：牛客校招日程 → 资料库数据表 → `export_seed.py` 重导快照 → `build_site.py` + `build_public.py` 重建 → 重新发布站点；站点打开时按牛客ID 增量合并，不动用户已有投递状态
-- **手动部署**：`printf '<token>\n' | python3 scripts/deploy_pages.py`（推送合并版到资料库 4 节点）
-- **更新岗位数据**：`printf '<token>\n' | python3 src/export_seed.py` → 重跑构建 ④⑤ → 重新发布
+### 每日抓取（推荐：零 token 独立版）
+
+`scripts/daily_sync.py` 一条命令跑完全程，**不需要 token、不需要任何外部服务**：
+
+```
+牛客校招日程(tab=3) ──► src/seed/seed.json（增量合并）──► dist/site + dist/public
+```
+
+```bash
+python3 scripts/daily_sync.py              # 抓取 + 合并 + 重建产物
+python3 scripts/daily_sync.py --dry-run    # 只看会新增什么，不落盘
+python3 scripts/daily_sync.py --no-build   # 只更新 seed.json
+python3 scripts/daily_sync.py --max-new 60 # 每表单次最多新增（默认 60，0=不限）
+```
+
+退出码：`0` 有更新 / `2` 无新增（正常）/ `1` 出错。运行日志写 `scripts/daily_sync_last.log`。
+
+**合并语义**（与站点端 `keyOf` 完全一致，保证两边口径统一）：
+
+| 表 | 去重键 | 收录条件 |
+| --- | --- | --- |
+| 秋招 `jobs` | `牛客ID`（缺失回落 `公司`） | 网申未截止（放宽 1 天），不限岗位方向 |
+| 实习 `interns` | `公司 + 岗位名称` | `batchName` 含「实习」且命中成都/北京/天津或远程/全国 |
+
+**只追加、不改写**：已有岗位的优先级、投递状态、备注等用户数据一律保留；`apps`（投递）与 `inbox`（收件箱）**一字不动**。
+
+**定时部署**（任选其一）：
+
+```bat
+:: Windows —— 任务计划程序，每天 09:00
+schtasks /create /tn "JobSeeker每日抓取" /tr "<仓库>\scripts\daily_sync.bat" /sc daily /st 09:00
+```
+
+```bash
+# Linux / macOS —— cron，每天 09:00
+0 9 * * * /path/to/job-seeker/scripts/daily_sync.sh >> /tmp/jobseeker.log 2>&1
+```
+
+两个启动器都会**自动探测 Python**（受管版本 → PATH 里的 `python` → `py`），仓库放在任何路径（含中文/空格）都能跑。
+
+### 需要写回资料库时（可选，需 token）
+
+以下脚本会把数据同步到腾讯文档资料库的数据表，**必须先拿到 token**（由 WorkBuddy 连接器现场签发，30 分钟有效），从 stdin 首行传入：
+
+```bash
+printf '<token>\n' | python3 src/export_seed.py      # 资料库 → seed.json（反向导出基线）
+printf '<token>\n' | python3 scripts/deploy_pages.py # 合并版 → 资料库 4 个节点
+printf '<token>\n' | python3 scripts/sync_autumn_all.py
+```
+
+> ℹ️ 站点产物（`dist/site`、`dist/public`）**不依赖 token**：抓取 → 合并 → 重建这条链路全在本地跑完。
+> token 只影响「同步到资料库在线表格」这一步，不影响站点数据更新。
 
 ## 约定
 

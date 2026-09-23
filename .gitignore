@@ -21,5 +21,8 @@ scripts/mail_config.json
 scripts/mail_seen.json
 scripts/mail_outbox_queue.json
 
+# 抓取运行日志（运行时产物，含公司名单，不入库）
+scripts/*_last.log
+
 # GitHub Pages 部署临时目录
 _site/

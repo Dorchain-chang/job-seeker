@@ -8,6 +8,23 @@ Job Seeker · 秋招岗位与投递管理台。按版本倒序记录，日期为
 
 ---
 
+## v44 · 2026-09-23 · 每日抓取脱离平台（零 token 独立脚本）
+
+此前每日抓取依赖外部自动化调用一串脚本，且每个脚本都要 WorkBuddy 连接器**现场签发 token**（30 分钟有效）。实际抓取用的牛客接口是公开的、无需鉴权 —— token 只花在「写回资料库在线表格」这一步。本版把站点数据链路彻底独立出来。
+
+- **新增 `scripts/daily_sync.py`**：一条命令跑完 `牛客 → seed.json → 重建 dist/site + dist/public`
+  - **零 token、零外部依赖**，只用 Python 标准库，可直接丢给系统计划任务 / cron
+  - **增量合并**，去重键与站点端 `keyOf` 完全一致（秋招 `牛客ID` 回落 `公司`；实习 `公司+岗位名称`），保证两边口径统一
+  - **只追加不改写**：已有岗位的优先级 / 投递状态 / 备注一律保留；`apps` 与 `inbox` 一字不动
+  - 参数：`--dry-run`（只报告）/ `--no-build`（只更新快照）/ `--max-new N`（限额，默认 60）
+  - 退出码语义化：`0` 有更新 / `2` 无新增 / `1` 出错；日志写 `scripts/daily_sync_last.log`
+- **新增启动器** `scripts/daily_sync.bat`（Windows）与 `scripts/daily_sync.sh`（Linux/macOS）
+  - 自动探测 Python（受管版本 → PATH `python` → `py`），用自身所在目录定位仓库，**路径含中文/空格也能跑**
+  - `.bat` 设 `chcp 65001` + `PYTHONIOENCODING=utf-8`，避免中文公司名在控制台乱码；内容刻意全 ASCII 以防编码损坏
+- **CI 新增 `Check Python sources compile`**：`py_compile` 全量 src/ 与 scripts/ —— 真实事故（`sync_autumn_all.py` 缺 `import os`，加载即 `NameError`）说明这类问题没有守卫就会漏到运行时
+- `.gitignore` 忽略 `scripts/*_last.log`（抓取运行日志含公司名单，不入库）
+- **验证**：把快照截断到 jobs=50 / interns=2 跑真流程 → 秋招补到 110（受 `--max-new 60` 约束）、实习 2→13，`apps` 未被改动，两个产物均重建成功；`--dry-run` 与两种启动器实测通过
+
 ## v43 · 2026-09-23 · 公开版站点（可分享的隐私安全形态）
 
 此前只有一个独立站点，它内嵌了**四张表的完整快照** —— 把它分享给别人，等于把自己的 5 条投递记录、14 条实习意向、收件箱情报一起送出去。本版新增一份只面向他人的发布形态。

@@ -42,6 +42,14 @@ jobs:
       - name: Guard against Python-ate JS escapes / raw control chars
         run: python3 tests/check_escapes.py
 
+      # 构建链与数据管道全是 Python：任何语法错误都会让整条链路静默失效。
+      # （真实事故：sync_autumn_all.py 缺 import os，加载即 NameError，脚本完全跑不起来）
+      - name: Check Python sources compile
+        run: |
+          set -e
+          python3 -m py_compile src/*.py scripts/*.py
+          echo "OK  src/ 与 scripts/ 下全部 Python 源文件语法通过"
+
       - name: Verify demo stays self-contained
         run: |
           for f in dist/demo/*.html; do
