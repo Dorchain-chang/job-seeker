@@ -30,6 +30,7 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 SEED_PATH = os.path.join(ROOT, "src", "seed", "seed.json")
+PUBLIC_SEED_PATH = os.path.join(ROOT, "src", "seed", "seed.public.json")
 LOG_PATH = os.path.join(HERE, "daily_sync_last.log")
 
 NOWCODER_URL = "https://www.nowcoder.com/np-api/u/school-schedule/list-card"
@@ -266,6 +267,14 @@ def save_seed(seed):
     with io.open(tmp, "w", encoding="utf-8", newline="\n") as f:
         json.dump(seed, f, ensure_ascii=False, indent=1)
     os.replace(tmp, SEED_PATH)
+    # 一并同步入库的公开快照：CI 拿不到全量快照，会回落到 seed.public.json 重建 dist/public。
+    # 两者一旦不同步，lint 的 `git diff --exit-code -- dist` 就会失败（v49 实际踩过）。
+    pub = {"exportedAt": seed.get("exportedAt"), "jobs": seed.get("jobs", [])}
+    ptmp = PUBLIC_SEED_PATH + ".tmp"
+    with io.open(ptmp, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(pub, f, ensure_ascii=False, indent=1)
+        f.write("\n")
+    os.replace(ptmp, PUBLIC_SEED_PATH)
 
 
 # ---------------------------------------------------------------- 构建

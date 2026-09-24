@@ -57,6 +57,14 @@ def main():
     p = seed_dir / "seed.json"
     p.write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {p} ({p.stat().st_size/1024:.1f} KB)")
+    # 同步入库的公开快照（只留 exportedAt + jobs）：CI 拿不到全量快照，会回落到它重建
+    # dist/public。两者不同步会让 lint 的 `git diff --exit-code -- dist` 失败（v49 实际踩过）。
+    # 固定 indent=1 + LF + 尾随换行，避免每次导出都产生无意义 diff。
+    pub = seed_dir / "seed.public.json"
+    with open(pub, "w", encoding="utf-8", newline="\n") as f:
+        f.write(json.dumps({"exportedAt": out.get("exportedAt"), "jobs": out.get("jobs", [])},
+                           ensure_ascii=False, indent=1) + "\n")
+    print(f"wrote {pub} ({pub.stat().st_size/1024:.1f} KB)  <- CI 公开版兜底快照")
 
 
 if __name__ == "__main__":
