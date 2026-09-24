@@ -148,31 +148,49 @@ const MOCK = `
   // __SMART_PAGE__（覆盖这里的 mock），所以它们不走本脚本 —— 由 tests/smoke_site.js 负责。
   const t0 = Date.now();
   await page.goto('file:///' + TARGET.replace(/\\/g, '/'));
+  // v50 起视图懒渲染：首屏只构建当前视图（今日提醒 → overview），其余视图首次进入时才渲染。
+  // 因此就绪信号改用总览台的热力图格子，各视图的卡片数在逐个进入视图后统计。
   await page.waitForFunction(() => {
     const el = document.getElementById('ov_todayCnt');
-    const cards = document.getElementById('at_jobCards');
-    return el && cards && !/加载中/.test(cards.textContent);
+    const hm = document.getElementById('hmGrid');
+    return el && hm && hm.querySelectorAll('.hm-cell').length > 0;
   }, { timeout: 15000 });
   const tInit = Date.now() - t0;
 
-  const r = await page.evaluate(() => {
+  const r = await page.evaluate(async () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const q = (id) => document.getElementById(id);
     const mock = window.__MOCK__;
-    const cards = document.querySelectorAll('#at_jobCards .jcard');
+    const tab = (v) => Array.from(document.querySelectorAll('nav.tabbar .tab')).find((t) => t.getAttribute('data-view') === v);
+    // 懒渲染：首屏 DOM（未访问其它视图时）
+    const domAtBoot = document.getElementsByTagName('*').length;
+    const at = tab('autumn'); if (at) at.click(); await sleep(90);
+    const autumnCards = document.querySelectorAll('#at_jobCards .jcard').length;
+    const autumnCnt = (q('at_jobCnt') || {}).textContent;
+    const cityOptions = (q('at_fCity') || { options: [] }).options.length;
+    const careerOptions = (q('at_fCareer') || { options: [] }).options.length;
+    const batchChips = document.querySelectorAll('#at_batchChips .chip').length;
+    const so = tab('soe'); if (so) so.click(); await sleep(90);
+    const soeCards = document.querySelectorAll('#so_jobCards .jcard').length;
+    const ir = tab('intern'); if (ir) ir.click(); await sleep(90);
+    const internCards = document.querySelectorAll('#ir_jobCards .jcard').length;
+    const td = Array.from(document.querySelectorAll('nav.tabbar .tab')).find((t) => t.textContent === '今日提醒');
+    if (td) td.click(); await sleep(60);
     return {
       queries: mock.queries, onUpdatedCalls: mock.onUpdatedCalls, writes: mock.writes,
       syncTxt: (q('syncTxt') || {}).textContent,
       today: (q('ov_todayList') || {}).innerHTML.length,
       todayCnt: (q('ov_todayCnt') || {}).textContent,
-      autumnCards: cards.length,
-      autumnCnt: (q('at_jobCnt') || {}).textContent,
-      soeCards: document.querySelectorAll('#so_jobCards .jcard').length,
-      internCards: document.querySelectorAll('#ir_jobCards .jcard').length,
+      domAtBoot,
+      autumnCards,
+      autumnCnt,
+      soeCards,
+      internCards,
       heatCells: document.querySelectorAll('#hmGrid .hm-cell').length,
       heatSum: (q('hmSum') || {}).textContent,
-      cityOptions: (q('at_fCity') || { options: [] }).options.length,
-      careerOptions: (q('at_fCareer') || { options: [] }).options.length,
-      batchChips: document.querySelectorAll('#at_batchChips .chip').length,
+      cityOptions,
+      careerOptions,
+      batchChips,
       domNodes: document.getElementsByTagName('*').length,
       uncaught: mock.uncaught,
       views: document.querySelectorAll('.view').length,
@@ -365,7 +383,12 @@ const MOCK = `
   console.log('秋招卡片:', r.autumnCards, '计数文案:', r.autumnCnt, '| 央国企卡片:', r.soeCards, '| 实习卡片:', r.internCards);
   console.log('热力图格子:', r.heatCells, '| 摘要:', r.heatSum);
   console.log('城市选项:', r.cityOptions, '| 职业选项:', r.careerOptions, '| 批次 chips:', r.batchChips, '| 视图数:', r.views);
-  console.log('DOM 节点总数:', r.domNodes);
+  console.log('DOM 节点总数:', r.domNodes, '| 首屏节点(仅当前视图):', r.domAtBoot);
+  // 懒渲染回归：首屏不应把四个视图的列表都建出来（秋招 300 张卡 ≈ 7600 节点）。
+  // 若这条挂掉，说明 viewRender/rendered 门闩失效，又回到了「启动即全量渲染」。
+  if (!(r.domNodes - r.domAtBoot > 3000)) {
+    errors.push('lazy view render broken: domAtBoot=' + r.domAtBoot + ' domNodes=' + r.domNodes);
+  }
   console.log('--- 交互 ---');
   console.log('切Tab+我的批次 后:', afterChip, '| 选城市后:', afterCity);
   console.log('情报面板: 分区', intel.secs, '条目', intel.items, '含牛客企业深链:', intel.hasEnterprise, '| 打开:', intelOpen);

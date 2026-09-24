@@ -1138,13 +1138,118 @@ window.agxRender=agxRender;window.agxExport=agxExport;window.agxImport=agxImport
 window.aiChat=aiChat;window.agBuildMessages=agBuildMessages;window.agTune=agTune;window.agPersona=agPersona;window.AGX_PRESETS=AGX_PRESETS;
 """
 
+# 运行性能层：本机存储读取缓存 + 输入防抖 + 卡片事件委托
+# 独立 raw 常量，不走 .format（免花括号双写，且可自由使用正则/转义）；
+# 用 r 前缀避免 Python 先解析掉反斜杠（见 tests/check_escapes.py）。
+PERF_JS = r"""
+/* ---------- 运行性能层（v50） ---------------------------------------------
+   三件事，全部只影响「怎么算」，不改任何业务口径：
+
+   ① lsJ()：带「原串比对」失效判定的 localStorage JSON 读取。
+      背景：mtAllM / mtAllJd / rvAll / rsLoad 这些访问器被逐条记录地调用
+      （匹配分徽章、JD 提示、复盘标记），每个岗位卡都读一次 —— 745 条岗位渲染
+      一轮 ≈ 2000 次「整段 JSON.parse」。实测单页加载即 2072 次 parse。
+      这里缓存解析结果；任何写入（本页或其它标签页）都会改变原串 → 缓存自动作废。
+      写入方一行都不用改，语义与「每次重新解析」完全等价。
+   ② dbnc()：输入防抖。搜索框原来每敲一个字就整表重建（444 张卡 + 数千监听器，
+      单次 22~32ms，超过一帧）。防抖后只在停顿渲染一次。
+   ③ bindCardDelegate()：卡片交互改事件委托。每张卡原有 6 个 addEventListener，
+      400+ 张卡 = 2000+ 个监听器常驻内存，且每次重建都要重新分配。
+      改成容器上各挂 1 个 click / change，用 closest 定位目标，交互完全等价。
+   -------------------------------------------------------------------------- */
+var _lsCache={};
+function lsJ(key,fb){
+  var raw=null;
+  try{raw=localStorage.getItem(key)}catch(e){return fb}
+  if(raw==null||raw===''){_lsCache[key]={raw:raw,val:fb};return fb}
+  var c=_lsCache[key];
+  if(c&&c.raw===raw)return c.val;
+  var v=fb;
+  try{v=JSON.parse(raw)}catch(e){v=fb}
+  _lsCache[key]={raw:raw,val:v};
+  return v;
+}
+function lsJdrop(key){delete _lsCache[key]}
+
+/* 输入防抖：以「元素」为键 —— 同一输入框连续 input 只跑最后一次，不同输入框互不干扰
+   （合并版里各模块共用一个作用域，用字符串键会互相取消） */
+function dbnc(el,fn,ms){
+  if(!el)return fn();
+  if(el.__dbncT)clearTimeout(el.__dbncT);
+  el.__dbncT=setTimeout(function(){el.__dbncT=null;fn()},ms||150);
+}
+
+/* 「投递状态」有 8 个选项，一屏 300 张卡逐张 createElement + appendChild 就是 2400 个元素、
+   4800 次属性写入，每次重建都重来一遍 —— 这是首屏渲染长任务里最肥的一块。
+   选项集只由 OPTS 决定，缓存成 HTML 串后每张卡一次 innerHTML 赋值即可。 */
+var _stOptHtml='',_stOptN=-1;
+function stOptHtml(){
+  var l=OPTS['投递状态']||[];
+  if(_stOptN!==l.length){
+    var h='';l.forEach(function(o){h+='<option value="'+esc(o.text)+'">'+esc(o.text)+'</option>'});
+    _stOptHtml=h;_stOptN=l.length;
+  }
+  return _stOptHtml;
+}
+
+/* 卡片上的「标已投」= 岗位状态 + 投递跟踪表一次写清（与各页原有的 markApplied 同一链路）。
+   放在共享层是因为委托处理器的作用域在模块 IIFE 之外，拿不到模块内的同名函数。 */
+function cardMarkApplied(rec){
+  applyToTracking(rec).then(function(){try{refreshAll()}catch(e){}setTimeout(function(){try{reloadAll()}catch(e){}},1600)},
+    function(){try{refreshAll()}catch(e){}});
+}
+function cardDelete(j,kind){
+  var isInt=kind==='intern';
+  if(!confirm('确定删除「'+plain(j['公司'])+'」这'+(isInt?'条实习岗位':'条岗位')+'吗？'))return;
+  db.deleteRecord({databaseId:isInt?INTERN_ID:JOBS_ID,recordId:recId(j)}).then(reloadAll)
+    .catch(function(e){console.error('[database] 删除失败:'+((e&&e.message)||String(e)))});
+}
+/* kind: 'job'（秋招/央国企）| 'intern'（实习）—— 决定写哪张表、链接是否记 pending */
+function bindCardDelegate(box,kind){
+  if(!box||box.__dlg)return;box.__dlg=1;
+  box.addEventListener('click',function(e){
+    var t=e.target;if(!t||!t.closest)return;
+    var card=t.closest('.jcard');if(!card||!box.contains(card))return;
+    var j=card.__mtRec;if(!j)return;
+    var b;
+    if(t.closest('.jsearch')){showIntel(fieldText(j,'公司'),nkId(j));return}
+    if(t.closest('.jdel')){cardDelete(j,kind);return}
+    if(t.closest('.jmark')){cardMarkApplied(j);return}
+    if((b=t.closest('.jmatch'))){mtRun(j,b,card);return}
+    if(t.closest('[data-field="投递链接"]')){
+      e.preventDefault();
+      var l=(kind==='intern')?urlVal(j['投递链接']).link:jobLink(j);
+      if(l){if(kind!=='intern')pendArm(j);openLink(l)}else{showIntel(fieldText(j,'公司'),nkId(j))}
+    }
+  });
+  box.addEventListener('change',function(e){
+    var t=e.target;if(!t||!t.classList||!t.classList.contains('jstatus'))return;
+    var card=t.closest?t.closest('.jcard'):null;
+    var j=card&&card.__mtRec;if(!j)return;
+    var st=jobStatus(j);
+    if(!t.value||t.value===st){t.value=st;return}
+    t.disabled=true;var val=t.value;
+    if(kind==='intern'){
+      db.updateRecord({databaseId:INTERN_ID,recordId:recId(j),properties:{'投递状态':{select:val}}})
+        .then(reloadAll)
+        .catch(function(er){console.error('[database] 更新失败:'+((er&&er.message)||String(er)));t.disabled=false});
+      return;
+    }
+    db.updateRecord({databaseId:JOBS_ID,recordId:recId(j),properties:{'投递状态':{select:val}}}).then(function(){
+      return val==='已投递'?applyToTracking(j):null;
+    }).then(function(){try{refreshAll()}catch(er){}setTimeout(function(){try{reloadAll()}catch(er){}},1600)})
+      .catch(function(er){console.error('[database] 更新失败:'+((er&&er.message)||String(er)));t.disabled=false;toast('更新失败：'+((er&&er.message)||String(er)),'err')});
+  });
+}
+"""
+
 # 匹配打分：岗位 ↔ 简历（结果只存本机）；普通字符串，禁止反斜杠转义
 MATCH_JS = """
 /* ---------- 简历↔岗位 匹配打分（BYOK · 结果只存本机） ---------- */
 var MT_NL=String.fromCharCode(10);
 var MT_JD_MAX=20000;
 function mtKey(j){return recKey(j)}
-function mtAllJd(){try{return JSON.parse(localStorage.getItem('wb_jd')||'{}')}catch(e){return{}}}
+function mtAllJd(){return lsJ('wb_jd',{})}
 function mtJdGet(j){var m=mtAllJd(),v=m[mtKey(j)];return v&&v.text?v.text:''}
 function mtJdFromField(j){return !mtJdGet(j)&&!!fieldText(j,'岗位要求')}
 function mtJdText(j){var t=mtJdGet(j);if(t)return t;return fieldText(j,'岗位要求')||''}
@@ -1154,11 +1259,11 @@ function mtJdSet(j,text){
   try{localStorage.setItem('wb_jd',JSON.stringify(m));return true}
   catch(e){alert('本机存储空间不足，JD 未保存（可删除部分 JD 后重试）');return false}
 }
-function mtAllM(){try{return JSON.parse(localStorage.getItem('wb_match')||'{}')}catch(e){return{}}}
+function mtAllM(){return lsJ('wb_match',{})}
 function mtSaveM(m){try{localStorage.setItem('wb_match',JSON.stringify(m));return true}catch(e){return false}}
 function mtGet(j){var m=mtAllM();return m[mtKey(j)]||null}
 function mtScore(j){var r=mtGet(j);return r&&typeof r.score==='number'?r.score:null}
-function mtResumes(){try{return JSON.parse(localStorage.getItem('wb_resumes')||'[]')}catch(e){return[]}}
+function mtResumes(){return lsJ('wb_resumes',[])}
 // 按「求职意向 ↔ 岗位方向/公司」的重合度自动挑一份简历，挑不到用最新一份
 function mtTokens(s){var out=[],cur='',i,c;for(i=0;i<s.length;i++){c=s.charCodeAt(i);
   if(c===32||c===9||c===47||c===65372||c===65292||c===12289||c===124){if(cur)out.push(cur);cur=''}else{cur+=s.charAt(i)}}
@@ -1355,7 +1460,7 @@ function aiFirstResume(){
 var mtCtxJob=null;
 
 /* ---------- M3 面试复盘助手（投递跟踪卡片 · 按需触发） ---------- */
-function rvAll(){try{return JSON.parse(localStorage.getItem('wb_review')||'{}')}catch(e){return{}}}
+function rvAll(){return lsJ('wb_review',{})}
 function rvGet(a){var m=rvAll();return m[recKey(a)]||null}
 function rvPut(a,raw,text){
   var m=rvAll();
@@ -3903,7 +4008,7 @@ function initAgPanel(){
 }
 window.agTune=agTune;window.agPanelLoad=agPanelLoad;window.agABRun=agABRun;window.agRenderTrace=agRenderTrace;
 /* ---------- 简历档案（多份 · 本机存储 · AI 解析） ---------- */
-function rsLoad(){try{return JSON.parse(localStorage.getItem('wb_resumes')||'[]')}catch(e){return[]}}
+function rsLoad(){return lsJ('wb_resumes',[])}
 function rsStore(a){try{localStorage.setItem('wb_resumes',JSON.stringify(a))}catch(e){alert('本机存储空间不足，保存失败：请删除不需要的简历后重试')}}
 function rsEl(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
 var rsBuf='';/* 待保存的简历正文（来自上传/粘贴） */
@@ -4254,30 +4359,16 @@ function buildJobCard(j){
   var dEl=card.querySelector('[data-field="截止日期"]');
   var dd=dOnly(j['截止日期']);
   if(dd){var n=diffDays(today(),dd);dEl.textContent=(n<0?'已截止(' + dd + ')':(n===0?'今天截止':n+'天后截止(' + dd + ')'));if(n<0)dEl.style.color='var(--red)';else if(n<=3)dEl.style.color='var(--orange)';}else{dEl.textContent='截止时间待定';}
-  var lnk=card.querySelector('[data-field="投递链接"]');lnk.addEventListener('click',function(e){e.preventDefault();var l=jobLink(j);if(l){pendArm(j);openLink(l)}else{showIntel(fieldText(j,'公司'),nkId(j))}});
-  card.querySelector('.jsearch').addEventListener('click',function(){showIntel(fieldText(j,'公司'),nkId(j))});
+  /* 交互（投递链接 / 公司情报 / 贴 JD 打分 / 标已投 / 状态 / 删除）统一由
+     bindCardDelegate 在容器上委托处理 —— 逐卡挂 6 个监听器在 300 张卡上就是 1800 个常驻闭包 */
   card.__mtRec=j;
-  var mbtn=card.querySelector('.jmatch');if(mbtn)mbtn.addEventListener('click',function(){mtRun(j,mbtn,card);});
   mtRenderRow(card,j);
   var jmk=card.querySelector('.jmark');
   /* 去重：状态已是「已投递」「不投了」时不再显示「标已投」——否则和右侧状态下拉的「已投递」是同一个动作两个入口。
      注意 .btn 是 display:inline-flex，用 hidden 属性压不住，必须显式 display:none。 */
-  if(jmk){
-    if(st==='已投递'||st==='不投了')jmk.style.display='none';
-    else jmk.addEventListener('click',function(){markApplied(j);});
-  }
-  var jst=card.querySelector('.jstatus');jst.innerHTML='';
-  (OPTS['投递状态']||[]).forEach(function(o){var op=document.createElement('option');op.value=o.text;op.textContent=o.text;jst.appendChild(op)});
+  if(jmk&&(st==='已投递'||st==='不投了'))jmk.style.display='none';
+  var jst=card.querySelector('.jstatus');jst.innerHTML=stOptHtml();
   jst.value=st;
-  jst.addEventListener('change',function(){
-    if(!jst.value||jst.value===st){jst.value=st;return}
-    jst.disabled=true;var val=jst.value;
-    db.updateRecord({databaseId:JOBS_ID,recordId:recId(j),properties:{'投递状态':{select:val}}}).then(function(){
-      return val==='已投递'?applyToTracking(j):null;
-    }).then(function(){try{refreshAll()}catch(e){}setTimeout(function(){try{reloadAll()}catch(e){}},1600)})
-      .catch(function(e){console.error('[database] 更新失败:'+((e&&e.message)||String(e)));jst.disabled=false;toast('更新失败：'+((e&&e.message)||String(e)),'err')});
-  });
-  card.querySelector('.jdel').addEventListener('click',function(){if(!confirm('确定删除「'+plain(j['公司'])+'」这条岗位吗？'))return;db.deleteRecord({databaseId:JOBS_ID,recordId:recId(j)}).then(reloadAll).catch(function(e){console.error('[database] 删除失败:'+((e&&e.message)||String(e)))})});
   return card;
 }
 /* 「标已投」与状态下拉共用同一条同步链路：岗位状态 + 投递跟踪表一次写清，界面立刻反映 */
@@ -4287,13 +4378,16 @@ function markApplied(rec){
 }
 function renderJobs(){
   var box=$('jobCards'),rows=filteredJobs();
+  bindCardDelegate(box,'job');
   setText('jobCnt',rows.length+' 个岗位');
   var CAP=300,shown=rows;
   if(rows.length>CAP){shown=rows.slice(0,CAP);setText('filterHint','共 '+rows.length+' 个岗位，已显示前 '+CAP+' 个，请用筛选/搜索缩小范围')}
   else{setText('filterHint','')}
   if(!shown.length){box.innerHTML='<div class="empty">没有符合条件的岗位，试试放宽筛选</div>';return}
-  box.innerHTML='';
-  shown.forEach(function(j){box.appendChild(buildJobCard(j))});
+  /* 先在文档片段里拼好再一次性挂载：逐张 appendChild 进已上屏的容器会反复触发样式/布局重算 */
+  var frag=document.createDocumentFragment();
+  shown.forEach(function(j){frag.appendChild(buildJobCard(j))});
+  box.innerHTML='';box.appendChild(frag);
 }
 function refreshAll(){renderFilterFacets();renderJobs();}
 function bindSubmitJob(){
@@ -4330,7 +4424,7 @@ function init(){
   bindSubmitJob();
   $('lnkClose').addEventListener('click',function(){$('lnkModal').style.display='none'});
   $('lnkModal').addEventListener('click',function(e){if(e.target===$('lnkModal'))$('lnkModal').style.display='none'});
-  $('q').addEventListener('input',function(){state.q=$('q').value.trim();renderJobs()});
+  $('q').addEventListener('input',function(){var el=this;dbnc(el,function(){state.q=el.value.trim();renderJobs()})});
   $('fSt').addEventListener('change',function(){state.fSt=$('fSt').value;renderJobs()});
   var fso=$('fSort');if(fso)fso.addEventListener('change',function(){state.fSort=fso.value;renderJobs()});
   $('fBatchF').addEventListener('change',function(){state.fBatchF=$('fBatchF').value;renderJobs()});
@@ -4440,29 +4534,14 @@ function buildJobCard(j){
   var dEl=card.querySelector('[data-field="截止日期"]');
   var dd=dOnly(j['截止日期']);
   if(dd){var n=diffDays(today(),dd);dEl.textContent=(n<0?'已截止(' + dd + ')':(n===0?'今天截止':n+'天后截止(' + dd + ')'));if(n<0)dEl.style.color='var(--red)';else if(n<=3)dEl.style.color='var(--orange)';}else{dEl.textContent='截止时间待定';}
-  card.querySelector('[data-field="投递链接"]').addEventListener('click',function(e){e.preventDefault();var l=jobLink(j);if(l){pendArm(j);openLink(l)}else{showIntel(fieldText(j,'公司'),nkId(j))}});
-  card.querySelector('.jsearch').addEventListener('click',function(){showIntel(fieldText(j,'公司'),nkId(j))});
+  /* 交互统一由 bindCardDelegate 在容器上委托处理（见 renderJobs） */
   card.__mtRec=j;
-  var mbtn=card.querySelector('.jmatch');if(mbtn)mbtn.addEventListener('click',function(){mtRun(j,mbtn,card);});
   mtRenderRow(card,j);
   /* 去重：状态已定（已投递 / 不投了）时隐藏「标已投」——否则它与右侧状态下拉的「已投递」是同一动作的两个入口。
      注意 .btn 是 display:inline-flex，hidden 属性压不住，必须显式 display:none。 */
   var jmk2=card.querySelector('.jmark');
-  if(jmk2){
-    if(st==='已投递'||st==='不投了')jmk2.style.display='none';
-    else jmk2.addEventListener('click',function(){markApplied(j);});
-  }
-  var jst=card.querySelector('.jstatus');jst.innerHTML='';
-  (OPTS['投递状态']||[]).forEach(function(o){var op=document.createElement('option');op.value=o.text;op.textContent=o.text;jst.appendChild(op)});jst.value=st;
-  jst.addEventListener('change',function(){
-    if(!jst.value||jst.value===st){jst.value=st;return}
-    jst.disabled=true;var val=jst.value;
-    db.updateRecord({databaseId:JOBS_ID,recordId:recId(j),properties:{'投递状态':{select:val}}}).then(function(){
-      return val==='已投递'?applyToTracking(j):null;
-    }).then(function(){try{refreshAll()}catch(e){}setTimeout(function(){try{reloadAll()}catch(e){}},1600)})
-      .catch(function(e){console.error('[database] 更新失败:'+((e&&e.message)||String(e)));jst.disabled=false;toast('更新失败：'+((e&&e.message)||String(e)),'err')});
-  });
-  card.querySelector('.jdel').addEventListener('click',function(){if(!confirm('确定删除「'+plain(j['公司'])+'」这条岗位吗？'))return;db.deleteRecord({databaseId:'GgZ71tywhs4HEZytFSqXTP',recordId:recId(j)}).then(reloadAll).catch(function(e){console.error('[database] 删除失败:'+((e&&e.message)||String(e)))})});
+  if(jmk2&&(st==='已投递'||st==='不投了'))jmk2.style.display='none';
+  var jst=card.querySelector('.jstatus');jst.innerHTML=stOptHtml();jst.value=st;
   return card;
 }
 function markApplied(rec){
@@ -4471,12 +4550,14 @@ function markApplied(rec){
 }
 function renderJobs(){
   var box=$('jobCards'),rows=filteredSOE();
+  bindCardDelegate(box,'job');
   setText('jobCnt',rows.length+' 家');
   var CAP=300,shown=rows;
   if(rows.length>CAP){shown=rows.slice(0,CAP);setText('filterHint','共 '+rows.length+' 家央国企，已显示前 '+CAP+' 家')}else{setText('filterHint','')}
   if(!shown.length){box.innerHTML='<div class="empty">暂未识别到央国企岗位</div>';return}
-  box.innerHTML='';
-  shown.forEach(function(j){box.appendChild(buildJobCard(j))});
+  var frag=document.createDocumentFragment();
+  shown.forEach(function(j){frag.appendChild(buildJobCard(j))});
+  box.innerHTML='';box.appendChild(frag);
 }
 function refreshAll(){renderFilterFacets();renderJobs();}
 function bindSubmitJob(){
@@ -4506,7 +4587,7 @@ function init(){
   bindFormCache('jobForm');
   $('lnkClose').addEventListener('click',function(){$('lnkModal').style.display='none'});
   $('lnkModal').addEventListener('click',function(e){if(e.target===$('lnkModal'))$('lnkModal').style.display='none'});
-  $('q').addEventListener('input',function(){state.q=$('q').value.trim();renderJobs()});
+  $('q').addEventListener('input',function(){var el=this;dbnc(el,function(){state.q=el.value.trim();renderJobs()})});
   $('fSt').addEventListener('change',function(){state.fSt=$('fSt').value;renderJobs()});
   var fso=$('fSort');if(fso)fso.addEventListener('change',function(){state.fSort=fso.value;renderJobs()});
   $('fCity').addEventListener('change',function(){state.fCity=$('fCity').value;renderJobs()});
@@ -4614,10 +4695,12 @@ function filteredInterns(){
 }
 function renderInterns(){
   var box=$('jobCards'),rows=filteredInterns();
+  bindCardDelegate(box,'intern');
   setText('jobCnt',rows.length+' 条');
   if(!rows.length){box.innerHTML='<div class="empty">还没有实习岗位：在 BOSS 上看到合适的，复制链接点上方「添加实习岗位」收录</div>';return}
-  box.innerHTML='';
-  rows.forEach(function(i){box.appendChild(buildInternCard(i))});
+  var frag=document.createDocumentFragment();
+  rows.forEach(function(i){frag.appendChild(buildInternCard(i))});
+  box.innerHTML='';box.appendChild(frag);
 }
 function buildInternCard(i){
   var card=$('tplJob').cloneNode(true);card.removeAttribute('id');
@@ -4628,15 +4711,10 @@ function buildInternCard(i){
   setFieldText(card,'网申开始',plain(i['网申开始'])||'—',INTERN_ID);setFieldText(card,'截止日期',plain(i['截止日期'])||'—',INTERN_ID);
   var dlRow=card.querySelector('.dline');if(dlRow&&!dl)dlRow.style.display='none';
   var stEl=card.querySelector('[data-field="投递状态"]');if(st==='已投递')stEl.className='tag ok';else if(st==='不投了')stEl.className='tag gray';
-  card.querySelector('[data-field="投递链接"]').addEventListener('click',function(e){e.preventDefault();var l=urlVal(i['投递链接']).link;if(l){openLink(l)}else{showIntel(fieldText(i,'公司'),nkId(i))}});
-  card.querySelector('.jsearch').addEventListener('click',function(){showIntel(fieldText(i,'公司'),nkId(i))});
+  /* 交互统一由 bindCardDelegate（kind='intern'）在容器上委托处理 —— 实习卡不打 pending、不联动投递跟踪表 */
   card.__mtRec=i;
-  var mbtn=card.querySelector('.jmatch');if(mbtn)mbtn.addEventListener('click',function(){mtRun(i,mbtn,card);});
   mtRenderRow(card,i);
-  var jst=card.querySelector('.jstatus');jst.innerHTML='';
-  (OPTS['投递状态']||[]).forEach(function(o){var op=document.createElement('option');op.value=o.text;op.textContent=o.text;jst.appendChild(op)});jst.value=st;
-  jst.addEventListener('change',function(){if(!jst.value||jst.value===st){jst.value=st;return}jst.disabled=true;db.updateRecord({databaseId:'tgH8096uENTaIj8RSY9qm5',recordId:recId(i),properties:{'投递状态':{select:jst.value}}}).then(reloadAll).catch(function(e){console.error('[database] 更新失败:'+((e&&e.message)||String(e)));jst.disabled=false})});
-  card.querySelector('.jdel').addEventListener('click',function(){if(!confirm('确定删除「'+plain(i['公司'])+'」这条实习岗位吗？'))return;db.deleteRecord({databaseId:'tgH8096uENTaIj8RSY9qm5',recordId:recId(i)}).then(reloadAll).catch(function(e){console.error('[database] 删除失败:'+((e&&e.message)||String(e)))})});
+  var jst=card.querySelector('.jstatus');jst.innerHTML=stOptHtml();jst.value=st;
   return card;
 }
 function refreshAll(){renderInterns();}
@@ -4667,7 +4745,7 @@ function init(){
   bindFormCache('internForm');
   $('lnkClose').addEventListener('click',function(){$('lnkModal').style.display='none'});
   $('lnkModal').addEventListener('click',function(e){if(e.target===$('lnkModal'))$('lnkModal').style.display='none'});
-  $('q').addEventListener('input',function(){state.q=$('q').value.trim();renderInterns()});
+  $('q').addEventListener('input',function(){var el=this;dbnc(el,function(){state.q=el.value.trim();renderInterns()})});
   $('fSt').addEventListener('change',function(){state.fSt=$('fSt').value;renderInterns()});
   var fso=$('fSort');if(fso)fso.addEventListener('change',function(){state.fSort=fso.value;renderInterns()});
   DB_READY=function(){return initSchema(function(){renderSelectOptions()})};
@@ -4696,7 +4774,7 @@ def _wrap_page(title, body, nav, page_js, urls, active, hero=''):
             "if(_loadRetry<1){_loadRetry++;return new Promise(function(ok){setTimeout(ok,1500)}).then(loadData)}"
             "_loadRetry=0;_syncFailed=true;setSync('warn');return Promise.reject(e)});return _loadP}\n"
             "function reloadAll(){return loadData().then(function(){refreshAll()},function(){refreshAll()});}\n")
-    js = "(function(){\n'use strict';\n" + SHARED_JS + "\n" + THEME_JS + "\n" + AI_CORE_JS + "\n" + AGTUNE_JS + "\n" + MATCH_JS + "\n" + AI_PLUS_JS + "\n" + DM_JS + "\n" + RAG_JS + "\n" + APPLY_JS + "\n" + NAVSEC_JS + "\n" + RSPDF_JS + "\n"
+    js = "(function(){\n'use strict';\n" + SHARED_JS + "\n" + PERF_JS + "\n" + THEME_JS + "\n" + AI_CORE_JS + "\n" + AGTUNE_JS + "\n" + MATCH_JS + "\n" + AI_PLUS_JS + "\n" + DM_JS + "\n" + RAG_JS + "\n" + APPLY_JS + "\n" + NAVSEC_JS + "\n" + RSPDF_JS + "\n"
     js += "var PAGE_URLS={overview:'%s',autumn:'%s',soe:'%s',intern:'%s'};\n" % (urls["overview"], urls["autumn"], urls["soe"], urls["intern"])
     js += fetch_jobs + fetch_apps + fetch_ints + fetch_inbx + load + page_js + "\nif(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init)}else{init()}\n})();"
 

@@ -50,7 +50,7 @@ REFRESH_LINE = {
 # hand-written per-module registration (bind/setup) replacing the old init()
 TAIL = {
 "overview": """
-MODS.push({refresh:function(){renderToday();renderTdStats();renderStats();renderModuleCounts();renderFunnel();renderInbox();renderApps();renderHeatmap();},setup:function(){fillStageOv();initAiSettings();initAgPanel();initResumes();},bind:function(){
+MODS.push({name:'overview',refresh:function(){renderToday();renderTdStats();renderStats();renderModuleCounts();renderFunnel();renderInbox();renderApps();renderHeatmap();},setup:function(){fillStageOv();initAiSettings();initAgPanel();initResumes();},bind:function(){
   bindSubmitApp();
   bindFormCache('ov_appForm');
   bindQuickIntel();
@@ -122,9 +122,9 @@ function showHmDetail(ds){
 })();
 """,
 "autumn": """
-MODS.push({refresh:function(){renderFilterFacets();renderJobs();},setup:function(){renderSelectOptions();},bind:function(){
+MODS.push({name:'autumn',refresh:function(){renderFilterFacets();renderJobs();},setup:function(){renderSelectOptions();},bind:function(){
   bindSubmitJob();
-  $('at_q').addEventListener('input',function(){state.at_q=$('at_q').value.trim();renderJobs()});
+  $('at_q').addEventListener('input',function(){var el=this;dbnc(el,function(){state.at_q=el.value.trim();renderJobs()})});
   $('at_fSt').addEventListener('change',function(){state.at_fSt=$('at_fSt').value;renderJobs()});
   $('at_fBatchF').addEventListener('change',function(){state.at_fBatchF=$('at_fBatchF').value;renderJobs()});
   $('at_fCity').addEventListener('change',function(){state.at_fCity=$('at_fCity').value;renderJobs()});
@@ -136,9 +136,9 @@ MODS.push({refresh:function(){renderFilterFacets();renderJobs();},setup:function
 }});
 """,
 "soe": """
-MODS.push({refresh:function(){renderFilterFacets();renderJobs();},setup:function(){renderSelectOptions();},bind:function(){
+MODS.push({name:'soe',refresh:function(){renderFilterFacets();renderJobs();},setup:function(){renderSelectOptions();},bind:function(){
   bindSubmitJob();
-  $('so_q').addEventListener('input',function(){state.so_q=$('so_q').value.trim();renderJobs()});
+  $('so_q').addEventListener('input',function(){var el=this;dbnc(el,function(){state.so_q=el.value.trim();renderJobs()})});
   $('so_fSt').addEventListener('change',function(){state.so_fSt=$('so_fSt').value;renderJobs()});
   $('so_fCity').addEventListener('change',function(){state.so_fCity=$('so_fCity').value;renderJobs()});
   $('so_fCareer').addEventListener('change',function(){state.so_fCareer=$('so_fCareer').value;renderJobs()});
@@ -146,10 +146,10 @@ MODS.push({refresh:function(){renderFilterFacets();renderJobs();},setup:function
 }});
 """,
 "intern": """
-MODS.push({refresh:function(){renderInterns();},setup:function(){renderSelectOptions();},bind:function(){
+MODS.push({name:'intern',refresh:function(){renderInterns();},setup:function(){renderSelectOptions();},bind:function(){
   bindSubmitIntern();
   bindFormCache('ir_internForm');
-  $('ir_q').addEventListener('input',function(){state.ir_q=$('ir_q').value.trim();renderInterns()});
+  $('ir_q').addEventListener('input',function(){var el=this;dbnc(el,function(){state.ir_q=el.value.trim();renderInterns()})});
   $('ir_fSt').addEventListener('change',function(){state.ir_fSt=$('ir_fSt').value;renderInterns()});
   $('ir_fSort').addEventListener('change',function(){state.ir_fSort=$('ir_fSort').value;renderInterns()});
 }});
@@ -235,6 +235,7 @@ function showView(name){
     if(window.ovSec)window.ovSec(name);
     try{history.replaceState(null,'','#'+name)}catch(e){}
     window.scrollTo(0,0);
+    CUR_V='overview';if(DATA_READY)viewRender(CUR_V);
     return;
   }
   var vn=name==='today'?'overview':name;
@@ -243,6 +244,8 @@ function showView(name){
   if((name==='today'||name==='overview')&&window.ovSub)window.ovSub(name==='today'?'today':'me');
   try{history.replaceState(null,'','#'+name)}catch(e){}
   window.scrollTo(0,0);
+  /* 懒渲染：首次进入该视图时才构建它的列表（数据没就绪时先只记下视图名，boot 里再补渲染） */
+  CUR_V=vn;if(DATA_READY)viewRender(vn);
 }
 /* 必须挂到 window：侧栏分组的点击委托在 NAVSEC_JS（shared 段，作用域在本 IIFE 之外），
    它只认 window.showView；不挂的话从「秋招岗位/央国企/实习直通」点「个人知识库/定时任务」
@@ -264,7 +267,13 @@ function boot(){
   if(!db){goOffline();return}
   MODS.forEach(function(m){m.bind&&m.bind()});
   /* 就绪链路抽成可重跑的 DB_READY：离线横幅的「重试连接」复用它，无需整页刷新 */
-  DB_READY=function(){return initSchema(function(){MODS.forEach(function(m){m.setup&&m.setup()})})};
+  DB_READY=function(){return initSchema(function(){
+    MODS.forEach(function(m){m.setup&&m.setup()});
+    /* 首屏只渲染当前视图；其余视图等用户切过去时由 showView → viewRender 按需构建。
+       用 DATA_READY 兜住「重试连接」的第二次进入，避免把已渲染视图的标记重置掉。 */
+    if(!DATA_READY){MODS.forEach(function(m){m.rendered=(m.name===CUR_V)});DATA_READY=true}
+    refreshAll();
+  })};
   DB_READY().catch(function(e){console.error('[database] 初始化失败:'+((e&&e.message)||String(e)));goOffline()});
 }
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',boot)}else{boot()}
@@ -349,8 +358,18 @@ def build():
 
     glue = """
 var MODS=[];
-function refreshAll(){MODS.forEach(function(m){m.refresh()});}
-function goOffline(){offline=true;setSync('off');$('offBanner').style.display='block';MODS.forEach(function(m){m.refresh&&m.refresh()});}
+/* 视图懒渲染（v50）：合并版四个视图的列表原先在启动时全部构建 —— 首屏 DOM 常驻 ≈1.2 万节点，
+   其中 7600 是「秋招岗位」的 300 张卡；而且每次写库后的 refreshAll 会把四个视图全量重建一遍。
+   现在只有「被访问过」的视图才渲染，未访问的保持占位；refreshAll 也只重建已就绪的视图。
+   功能等价（切到哪个视图，那个视图一定是最新数据），但首屏 DOM 从 ≈1.2 万降到 ≈1 千。 */
+var CUR_V='overview',DATA_READY=false;
+function viewRender(name){
+  var vn=(name==='today'?'overview':name);
+  /* 只在首次进入该视图时构建：之后再切回来不重复重建（数据变更由 refreshAll/reloadAll 负责） */
+  MODS.forEach(function(m){ if(m.name===vn&&!m.rendered){ m.rendered=1; if(m.refresh)m.refresh(); } });
+}
+function refreshAll(){MODS.forEach(function(m){if(m.rendered)m.refresh()});}
+function goOffline(){offline=true;setSync('off');$('offBanner').style.display='block';MODS.forEach(function(m){if(m.rendered&&m.refresh)m.refresh()});}
 """
     js_all = shared + "\n" + glue + "\n" + "\n".join(module_blocks) + "\n" + BOOT_JS + "\n})();"
 
