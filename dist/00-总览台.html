@@ -471,6 +471,31 @@ label.fl{display:block;margin:6px 0 0}
   .stat b{font-size:24px}
   .xgrid{grid-template-columns:1fr}
 }
+/* ---------- 投递闭环：轻提示 + 跳转回来一问（基础规则在后，避免被源序更早的规则压掉） ---------- */
+.toastbox{position:fixed;top:64px;right:14px;z-index:99999;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;transform:translateZ(0)}
+.toast{max-width:360px;padding:9px 12px;font-size:12.5px;line-height:1.5;background:#0f172a;color:#fff;border-left:4px solid var(--pri);box-shadow:0 8px 24px rgba(15,23,42,.24);opacity:0;transform:translateX(14px);animation:toastIn .2s ease-out forwards}
+.toast.ok{border-left-color:var(--green)}
+.toast.warn{border-left-color:var(--orange)}
+.toast.err{border-left-color:var(--red)}
+.toast.out{animation:toastOut .6s ease-in forwards}
+@keyframes toastIn{to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(14px)}}
+.askcard{position:fixed;right:16px;bottom:16px;z-index:99999;width:330px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--pri);box-shadow:0 14px 36px rgba(15,23,42,.2);transform:translateZ(0);animation:askIn .22s ease-out}
+.askcard .askh{font-size:11px;letter-spacing:.08em;color:var(--sub);padding:10px 13px 0}
+.askcard .askq{padding:4px 13px 11px;font-size:13.5px;font-weight:600;color:var(--txt);line-height:1.5}
+.askcard .aska{display:flex;gap:6px;padding:0 13px 13px;flex-wrap:wrap}
+.askcard .askedit{display:flex;flex-direction:column;gap:4px;padding:10px 13px 13px;border-top:1px solid var(--line)}
+.askcard .askedit[hidden]{display:none}
+.askcard .askedit input{font-size:12.5px;padding:6px 8px}
+.askcard .askedit .btn{align-self:flex-start;margin-top:4px}
+/* 岗位表与投递跟踪表的落差提示：已标已投递但跟踪表没记录 → 一键补齐 */
+.gaphint{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;padding:10px 12px;background:#fffaf0;border:1px solid #f0d9a8;border-left:4px solid var(--orange);font-size:12.5px;color:var(--txt);line-height:1.6}
+.gaphint b{color:var(--orange)}
+@media (max-width:768px){
+  .toastbox{top:56px;left:12px;right:12px;align-items:stretch}
+  .toast{max-width:none}
+  .askcard{left:12px;right:12px;bottom:12px;width:auto}
+}
 
 nav.tabbar .tab{cursor:pointer;font-family:inherit}
 .view{display:none}
@@ -636,7 +661,7 @@ nav.tabbar .tab{cursor:pointer;font-family:inherit}
 <div id="ovMeHead" style="display:none">
 <div class="stats">
   <div class="stat" style="border-color:#f3c1c1"><b id="ov_stWait" data-sp-bindable="database" data-sp-database-id="GgZ71tywhs4HEZytFSqXTP">0</b><span>待投递岗位</span></div>
-  <div class="stat"><b id="ov_stDone" data-sp-bindable="database" data-sp-database-id="GgZ71tywhs4HEZytFSqXTP">0</b><span>已投递</span></div>
+  <div class="stat"><b id="ov_stDone" data-sp-bindable="database" data-sp-database-id="GgZ71tywhs4HEZytFSqXTP">0</b><span>已投出</span></div>
   <div class="stat danger"><b id="ov_stDdl" data-sp-bindable="database" data-sp-database-id="GgZ71tywhs4HEZytFSqXTP">0</b><span>7天内截止</span></div>
   <div class="stat"><b id="ov_stLive" data-sp-bindable="database" data-sp-database-id="oBGkMFTv9Xv4Xn5gFOK18S">0</b><span>面试进行中</span></div>
 </div>
@@ -2874,6 +2899,163 @@ function ragStatRefresh(){
 window.ragTok=ragTok;window.ragLocal=ragLocal;window.ragFmt=ragFmt;window.ragOpen=ragOpen;window.ragScopeOf=ragScopeOf;window.ragStatRefresh=ragStatRefresh;
 
 
+/* ================= 投递闭环：跳出去投 → 回来一问 → 一次同步 → 一处提示 ================= */
+/* 轻提示：右上角滑入，2.6s 自动淡出；kind = ok / warn / err / info */
+function toast(msg,kind){
+  var box=document.querySelector('.toastbox');
+  if(!box){box=document.createElement('div');box.className='toastbox';document.body.appendChild(box)}
+  var d=document.createElement('div');d.className='toast '+(kind||'info');
+  d.textContent=String(msg==null?'':msg);box.appendChild(d);
+  setTimeout(function(){d.classList.add('out')},2600);
+  setTimeout(function(){if(d.parentNode)d.parentNode.removeChild(d)},3300);
+}
+/* 公司名规范化：跨表匹配用（去空白、全角括号统一、忽略大小写） */
+function normCo(s){
+  return String(s==null?'':s).replace(/\s+/g,'').replace(/[（【〔]/g,'(').replace(/[）】〕]/g,')').toLowerCase();
+}
+/* 在投递跟踪表里按公司找记录 */
+function findAppByCompany(co){
+  var key=normCo(co),i,a;
+  if(!key)return null;
+  for(i=0;i<state.apps.length;i++){a=state.apps[i];if(normCo(fieldText(a,'公司'))===key)return a}
+  return null;
+}
+/* 在岗位表 / 实习表里按公司找记录（用于回填 recordId） */
+function findJobByCompany(co){
+  var key=normCo(co),i;
+  if(!key)return null;
+  for(i=0;i<state.jobs.length;i++){if(normCo(fieldText(state.jobs[i],'公司'))===key)return state.jobs[i]}
+  for(i=0;i<state.interns.length;i++){if(normCo(fieldText(state.interns[i],'公司'))===key)return state.interns[i]}
+  return null;
+}
+/* 唯一同步入口：岗位标「已投递」→ 投递跟踪表必须有对应记录（进度表更新的唯一来源）。
+   已存在时只补齐、不回退：阶段为空 / 待投递才提升为已投递，岗位名 / 链接 / 投递日期缺了才补；
+   已是笔试及以后则原样保留，绝不把进度拽回去。
+   返回 {action:'created'|'updated'|'kept', company}；失败会 toast 出来，不再静默 console.error。 */
+function applyToTracking(rec,opts){
+  opts=opts||{};
+  var company=trimStr(opts.company||(rec?fieldText(rec,'公司'):''));
+  var pos=trimStr(opts.position||(rec?(fieldText(rec,'岗位方向')||fieldText(rec,'岗位名称')):'')||'')||'校招岗位';
+  var link=trimStr(opts.link||(rec?urlVal(rec['投递链接']).link:''));
+  var dateStr=dOnly(opts.date)||today();
+  if(!company)return Promise.reject(new Error('这条记录没有公司名，无法同步到投递跟踪'));
+  var step1=Promise.resolve();
+  if(rec){
+    rec['投递状态']=optText('投递状态',optId('投递状态','已投递'));/* 乐观：界面立刻反映，不等云端回读 */
+    step1=db.updateRecord({databaseId:JOBS_ID,recordId:recId(rec),properties:{'投递状态':{select:optId('投递状态','已投递')}}});
+  }
+  return step1.then(function(){
+    var hit=findAppByCompany(company),p,props,raw;
+    if(!hit){
+      p={'公司':{text:company},'岗位':{text:pos},'当前阶段':{select:optId('当前阶段','已投递')},'投递日期':{date:dateStr},'节点说明':{text:'由投递后一键确认同步'}};
+      if(link)p['相关链接']={url:{text:'网申入口',link:link}};
+      return db.addRecord({databaseId:APPS_ID,properties:p}).then(function(){
+        state.apps.push({'公司':{text:company},'岗位':{text:pos},'当前阶段':{text:'已投递'},'投递日期':{date:dateStr},'节点说明':{text:'由投递后一键确认同步'}});
+        return {action:'created',company:company};
+      });
+    }
+    props={};raw=trimStr(fieldText(hit,'当前阶段'));
+    if(!raw||raw==='待投递')props['当前阶段']={select:optId('当前阶段','已投递')};
+    if(!trimStr(fieldText(hit,'岗位')))props['岗位']={text:pos};
+    if(!dOnly(hit['投递日期']))props['投递日期']={date:dateStr};
+    if(!urlVal(hit['相关链接']).link&&link)props['相关链接']={url:{text:'网申入口',link:link}};
+    if(!Object.keys(props).length)return {action:'kept',company:company};
+    if(props['当前阶段'])hit['当前阶段']={text:'已投递'};
+    if(props['岗位'])hit['岗位']=props['岗位'];
+    if(props['投递日期'])hit['投递日期']=props['投递日期'];
+    return db.updateRecord({databaseId:APPS_ID,recordId:recId(hit),properties:props}).then(function(){return {action:'updated',company:company}});
+  }).then(function(r){
+    var word=r.action==='created'?'已在投递跟踪新建记录':(r.action==='updated'?'已补齐投递跟踪记录':'投递跟踪里已有该记录');
+    if(!opts.silent)toast('已记入投递跟踪：'+company+' · '+word,'ok');
+    return r;
+  },function(e){
+    if(!opts.silent)toast('同步到投递跟踪失败：'+((e&&e.message)||String(e)),'err');
+    throw e;
+  });
+}
+/* ---------- 跳出去投递 → 回来一问 ---------- */
+var PEND_KEY='wb_pendApply',PEND_SKIP='wb_pendSkip',PEND_MIN_AWAY=4000,PEND_MAX_AGE=6*3600*1000;
+function pendArm(rec){
+  if(!rec)return;
+  try{
+    localStorage.setItem(PEND_KEY,JSON.stringify({
+      id:recId(rec),company:fieldText(rec,'公司'),
+      position:fieldText(rec,'岗位方向')||fieldText(rec,'岗位名称')||'',
+      link:urlVal(rec['投递链接']).link,at:Date.now()
+    }));
+  }catch(e){}
+}
+function pendLoad(){try{var s=localStorage.getItem(PEND_KEY);return s?JSON.parse(s):null}catch(e){return null}}
+function pendClear(){try{localStorage.removeItem(PEND_KEY)}catch(e){}}
+/* 「没投」→ 该公司 24 小时内不再追问，避免回来一次问一次 */
+function pendSkip(co){
+  try{var m={},s=localStorage.getItem(PEND_SKIP);if(s)m=JSON.parse(s)||{};m[normCo(co)]=Date.now();localStorage.setItem(PEND_SKIP,JSON.stringify(m))}catch(e){}
+}
+function pendSkipped(co){
+  try{var s=localStorage.getItem(PEND_SKIP);if(!s)return false;var m=JSON.parse(s)||{},t=m[normCo(co)];return !!t&&(Date.now()-t)<24*3600*1000}catch(e){return false}
+}
+/* 页面重新可见 / 窗口重新获得焦点时检查：离开至少 4 秒才问，超过 6 小时自动作废 */
+function pendCheck(){
+  if(document.hidden)return;
+  var p=pendLoad();if(!p)return;
+  var away=Date.now()-(p.at||0);
+  if(away<PEND_MIN_AWAY)return;
+  if(away>PEND_MAX_AGE){pendClear();return}
+  if(document.querySelector('.askcard'))return;
+  if(pendSkipped(p.company))return;
+  showApplyAsk(p);
+}
+function showApplyAsk(p){
+  var old=document.querySelector('.askcard');if(old&&old.parentNode)old.parentNode.removeChild(old);
+  var d=document.createElement('div');d.className='askcard';
+  var head=esc(p.company||'这家公司')+(p.position?(' · '+esc(p.position)):'');
+  d.innerHTML='<div class="askh">刚从投递页回来</div>'
+    +'<div class="askq">'+head+' 投了吗？</div>'
+    +'<div class="aska">'
+    +'<button type="button" class="btn btn-pri btn-sm askYes">投了</button>'
+    +'<button type="button" class="btn btn-ghost btn-sm askEdit">岗位不一样</button>'
+    +'<button type="button" class="btn btn-gray btn-sm askNo">没投</button>'
+    +'</div>'
+    +'<div class="askedit" hidden>'
+    +'<label class="fl">公司</label><input class="askco" value="'+esc(p.company||'')+'">'
+    +'<label class="fl">岗位</label><input class="askpos" value="'+esc(p.position||'')+'">'
+    +'<label class="fl">投递日期</label><input class="askdate" type="date" value="'+today()+'">'
+    +'<button type="button" class="btn btn-pri btn-sm askSave">记下来</button>'
+    +'</div>';
+  document.body.appendChild(d);
+  var close=function(){if(d.parentNode)d.parentNode.removeChild(d)};
+  var record=function(company,position,dateStr){
+    var rec=null,i;
+    if(p.id){for(i=0;i<state.jobs.length;i++){if(recId(state.jobs[i])===p.id){rec=state.jobs[i];break}}}
+    if(!rec){for(i=0;i<state.interns.length;i++){if(recId(state.interns[i])===p.id){rec=state.interns[i];break}}}
+    if(!rec)rec=findJobByCompany(company);
+    pendClear();close();
+    return applyToTracking(rec,{company:company,position:position,date:dateStr}).then(function(){
+      /* 本地已乐观更新，先按本地重渲染（立刻可见）；1.6s 后再与云端对账，避开读一致性延迟 */
+      try{refreshAll()}catch(e){}
+      setTimeout(function(){try{reloadAll()}catch(e){}},1600);
+    },function(){try{refreshAll()}catch(e){}});
+  };
+  d.querySelector('.askYes').addEventListener('click',function(){record(p.company,p.position,today())});
+  d.querySelector('.askNo').addEventListener('click',function(){pendSkip(p.company);pendClear();close()});
+  d.querySelector('.askEdit').addEventListener('click',function(){
+    var box=d.querySelector('.askedit');box.hidden=!box.hidden;
+    if(!box.hidden){var i=d.querySelector('.askpos');if(i)try{i.focus()}catch(e){}}
+  });
+  d.querySelector('.askSave').addEventListener('click',function(){
+    var co=trimStr(d.querySelector('.askco').value),po=trimStr(d.querySelector('.askpos').value);
+    if(!co){toast('公司名不能为空','warn');return}
+    record(co,po,trimStr(d.querySelector('.askdate').value)||today());
+  });
+}
+/* 回到页面即检查：切标签回来走 visibilitychange，切窗口回来走 focus（部分浏览器只发其一） */
+document.addEventListener('visibilitychange',function(){if(!document.hidden)setTimeout(pendCheck,320)});
+window.addEventListener('focus',function(){setTimeout(pendCheck,320)});
+window.toast=toast;window.normCo=normCo;window.findAppByCompany=findAppByCompany;window.findJobByCompany=findJobByCompany;
+window.applyToTracking=applyToTracking;window.pendArm=pendArm;window.pendLoad=pendLoad;window.pendClear=pendClear;
+window.pendSkip=pendSkip;window.pendSkipped=pendSkipped;window.pendCheck=pendCheck;window.showApplyAsk=showApplyAsk;
+
+
 /* ---------- 我的空间：侧栏路由 + 定时任务 + 日程 + 求职助理 + 邮件粘贴解析 ---------- */
 var OV_SECS={
   today:['ovToday'],
@@ -3500,10 +3682,9 @@ function todayDone(it,btn){
   if(btn)btn.disabled=true;
   if(it.kind==='task'){taskMark(it.task.id,1);if(btn)btn.disabled=true;return}
   if(it.kind==='job'){
-    db.updateRecord({databaseId:'GgZ71tywhs4HEZytFSqXTP',recordId:recId(it.rec),properties:{'投递状态':{select:'已投递'}}})
-      .then(function(){return todaySyncTracking(it.rec)})
-      .then(reloadAll)
-      .catch(function(e){console.error('[database] 标记已投失败:'+((e&&e.message)||String(e)));if(btn)btn.disabled=false;alert('更新失败，请刷新后重试')});
+    /* 与岗位看板 / 状态下拉共用同一条同步链路：岗位状态 + 投递跟踪表一次写清 */
+    applyToTracking(it.rec).then(function(){try{refreshAll()}catch(e){}setTimeout(function(){try{reloadAll()}catch(e){}},1600);if(btn)btn.disabled=false},
+      function(){if(btn)btn.disabled=false;try{refreshAll()}catch(e){}});
   }else{
     db.updateRecord({databaseId:'oBGkMFTv9Xv4Xn5gFOK18S',recordId:recId(it.rec),properties:{'下次节点':{date:null}}})
       .then(reloadAll)
@@ -3529,21 +3710,46 @@ function todayDrop(it,btn){
       .catch(function(e){console.error('[database] 标记失败:'+((e&&e.message)||String(e)));if(btn)btn.disabled=false;alert('更新失败，请刷新后重试')});
   }
 }
-/* 岗位标记已投后，若跟踪表还没有这家公司就自动建档 */
-function todaySyncTracking(rec){
-  var company=fieldText(rec,'公司');if(!company)return Promise.resolve();
-  var exists=state.apps.some(function(a){return fieldText(a,'公司')===company});
-  if(exists)return Promise.resolve();
-  var p={'公司':{text:company},'岗位':{text:fieldText(rec,'岗位方向')||'校招岗位'},'当前阶段':{select:'已投递'},'投递日期':{date:today()},'节点说明':{text:'由今日处理一键标记自动生成'}};
-  var u=urlVal(rec['投递链接']);if(u.link)p['相关链接']={url:{text:'网申入口',link:u.link}};
-  return db.addRecord({databaseId:'oBGkMFTv9Xv4Xn5gFOK18S',properties:p}).catch(function(e){console.error('[database] 建档失败:'+((e&&e.message)||String(e)))});
-}
 function renderStats(){
-  var w=0,done=0,ddl=0,live=0,t=today();
-  state.jobs.forEach(function(j){var st=jobStatus(j);if(st==='待投递')w++;if(st==='已投递')done++;var dd=dOnly(j['截止日期']);if(st==='待投递'&&dd){var n=diffDays(t,dd);if(n>=0&&n<=7)ddl++}});
-  state.apps.forEach(function(a){var st=appStage(a);if(st!=='Offer'&&st!=='感谢信'&&st!=='已投递'&&st!==DROP_STAGE)live++});
-  setText('ov_stWait',w);setText('ov_stDone',done);setText('ov_stDdl',ddl);setText('ov_stLive',live);
-  markBindable($('ov_stWait'),JOBS_ID);markBindable($('ov_stDone'),JOBS_ID);markBindable($('ov_stDdl'),JOBS_ID);markBindable($('ov_stLive'),APPS_ID);
+  /* 口径统一：统计卡与投递漏斗同源（都数投递跟踪表），不再出现两个对不上的「已投递」。
+     岗位表的「已投递」另由「待补齐」提示条负责收敛到跟踪表 —— 见 renderGap。 */
+  var w=0,ddl=0,live=0,out=0,gap=0,t=today();
+  state.jobs.forEach(function(j){
+    var st=jobStatus(j);
+    if(st==='待投递'){w++;var dd=dOnly(j['截止日期']);if(dd){var n=diffDays(t,dd);if(n>=0&&n<=7)ddl++}}
+    if(st==='已投递'&&!findAppByCompany(fieldText(j,'公司')))gap++;
+  });
+  state.apps.forEach(function(a){
+    var st=appStage(a);
+    if(st!==DROP_STAGE)out++;
+    if(st==='笔试'||st==='一面'||st==='二面'||st==='HR面')live++;
+  });
+  setText('ov_stWait',w);setText('ov_stDone',out);setText('ov_stDdl',ddl);setText('ov_stLive',live);
+  markBindable($('ov_stWait'),JOBS_ID);markBindable($('ov_stDone'),APPS_ID);markBindable($('ov_stDdl'),JOBS_ID);markBindable($('ov_stLive'),APPS_ID);
+  renderGap(gap);
+}
+/* 已标「已投递」但跟踪表里没有记录 → 提示条 + 一键补齐（收敛用户看到的「我投了，进度表却没更新」） */
+function renderGap(n){
+  var box=$('ov_appCards');if(!box)return;
+  var sec=box.parentNode,old=sec?sec.querySelector('.gaphint'):null;
+  if(old&&old.parentNode)old.parentNode.removeChild(old);
+  if(!n)return;
+  var d=document.createElement('div');d.className='gaphint';
+  d.innerHTML='<b>'+n+' 家</b>岗位已标「已投递」，但投递跟踪表里还没有记录，所以没进上面的漏斗。<button type="button" class="btn btn-pri btn-sm gapfix">一键补齐</button>';
+  d.querySelector('.gapfix').addEventListener('click',function(){fixGap(this)});
+  if(sec)sec.insertBefore(d,box);
+}
+function fixGap(btn){
+  if(btn){btn.disabled=true;btn.textContent='补齐中…'}
+  var todo=state.jobs.filter(function(j){return jobStatus(j)==='已投递'&&!findAppByCompany(fieldText(j,'公司'))});
+  var chain=Promise.resolve();
+  todo.forEach(function(j){chain=chain.then(function(){return applyToTracking(j,{silent:true}).then(null,function(){})})});
+  chain.then(function(){
+    if(btn){btn.disabled=false;btn.textContent='一键补齐'}
+    toast('已补齐 '+todo.length+' 家投递跟踪记录','ok');
+    try{refreshAll()}catch(e){}
+    setTimeout(function(){try{reloadAll()}catch(e){}},1600);
+  });
 }
 function renderModuleCounts(){
   var aut=state.jobs.filter(function(j){return !isSOE(j)}).length;
@@ -3564,8 +3770,8 @@ function renderFunnel(){
     for(var i=0;i<STAGES.length;i++){
       var g=document.createElementNS(NS,'g');
       var t1=document.createElementNS(NS,'text');t1.setAttribute('x',2);t1.setAttribute('y',18+i*28);t1.setAttribute('font-size','12');t1.setAttribute('fill','#6b7280');t1.textContent=STAGES[i];
-      var bg=document.createElementNS(NS,'rect');bg.setAttribute('x',92);bg.setAttribute('y',6+i*28);bg.setAttribute('height',18);bg.setAttribute('width',440);bg.setAttribute('rx',9);bg.setAttribute('fill','#f1f3f7');
-      var bar=document.createElementNS(NS,'rect');bar.setAttribute('x',92);bar.setAttribute('y',6+i*28);bar.setAttribute('height',18);bar.setAttribute('width',0);bar.setAttribute('rx',9);bar.setAttribute('fill',i===5?'#059669':(i===6?'#c3cad6':'#2563eb'));bar.setAttribute('id','ov_fbar'+i);
+      var bg=document.createElementNS(NS,'rect');bg.setAttribute('x',92);bg.setAttribute('y',6+i*28);bg.setAttribute('height',18);bg.setAttribute('width',440);bg.setAttribute('rx',0);bg.setAttribute('fill','#f1f3f7');
+      var bar=document.createElementNS(NS,'rect');bar.setAttribute('x',92);bar.setAttribute('y',6+i*28);bar.setAttribute('height',18);bar.setAttribute('width',0);bar.setAttribute('rx',0);bar.setAttribute('style','fill:'+(i===5?'var(--green)':(i===6?'var(--sub)':'var(--pri)')));bar.setAttribute('id','ov_fbar'+i);
       var cnt=document.createElementNS(NS,'text');cnt.setAttribute('x',544);cnt.setAttribute('y',20+i*28);cnt.setAttribute('font-size','12');cnt.setAttribute('fill','#1f2937');cnt.setAttribute('font-weight','600');cnt.setAttribute('id','ov_fcnt'+i);cnt.textContent='0';
       g.appendChild(t1);g.appendChild(bg);g.appendChild(bar);g.appendChild(cnt);svg.appendChild(g);
     }
@@ -3598,9 +3804,12 @@ function renderApps(){
       if(name===DROP_STAGE)props['下次节点']={date:null};
       db.updateRecord({databaseId:'oBGkMFTv9Xv4Xn5gFOK18S',recordId:recId(a),properties:props}).then(reloadAll).catch(function(e){console.error('[database] 更新失败:'+((e&&e.message)||String(e)))});
     }
-    qy.disabled=(appStage(a)==='已投递');qn.disabled=(appStage(a)===DROP_STAGE);
-    qy.addEventListener('click',function(){setStage('已投递',true)});
-    qn.addEventListener('click',function(){setStage(DROP_STAGE,false)});
+    /* 去重：阶段已在流程里（含「已投递」本身）时收起「已投」按钮 —— 否则它和阶段 chip 列表里的
+       「已投递」是同一动作的两个入口，还会把进度从「一面」拽回「已投递」。已终止则保留，允许反悔想投。
+       注意 .btn 是 display:inline-flex，hidden 属性压不住，必须显式 display:none。 */
+    var _si=STAGES.indexOf(appStage(a));
+    if(_si>=0)qy.style.display='none';else qy.addEventListener('click',function(){setStage('已投递',true)});
+    if(appStage(a)===DROP_STAGE)qn.style.display='none';else qn.addEventListener('click',function(){setStage(DROP_STAGE,false)});
     tagEl.classList.add('astag');tagEl.title='点击展开全部阶段';
     tagEl.addEventListener('click',function(){
       if(!abox.hidden){abox.hidden=true;return}
@@ -4161,32 +4370,36 @@ function buildJobCard(j){
   var dEl=card.querySelector('[data-field="截止日期"]');
   var dd=dOnly(j['截止日期']);
   if(dd){var n=diffDays(today(),dd);dEl.textContent=(n<0?'已截止(' + dd + ')':(n===0?'今天截止':n+'天后截止(' + dd + ')'));if(n<0)dEl.style.color='var(--red)';else if(n<=3)dEl.style.color='var(--orange)';}else{dEl.textContent='截止时间待定';}
-  var lnk=card.querySelector('[data-field="投递链接"]');lnk.addEventListener('click',function(e){e.preventDefault();var l=jobLink(j);if(l){openLink(l)}else{showIntel(fieldText(j,'公司'),nkId(j))}});
+  var lnk=card.querySelector('[data-field="投递链接"]');lnk.addEventListener('click',function(e){e.preventDefault();var l=jobLink(j);if(l){pendArm(j);openLink(l)}else{showIntel(fieldText(j,'公司'),nkId(j))}});
   card.querySelector('.jsearch').addEventListener('click',function(){showIntel(fieldText(j,'公司'),nkId(j))});
   card.__mtRec=j;
   var mbtn=card.querySelector('.jmatch');if(mbtn)mbtn.addEventListener('click',function(){mtRun(j,mbtn,card);});
   mtRenderRow(card,j);
-  card.querySelector('.jmark').addEventListener('click',function(){markApplied(j);});
+  var jmk=card.querySelector('.jmark');
+  /* 去重：状态已是「已投递」「不投了」时不再显示「标已投」——否则和右侧状态下拉的「已投递」是同一个动作两个入口。
+     注意 .btn 是 display:inline-flex，用 hidden 属性压不住，必须显式 display:none。 */
+  if(jmk){
+    if(st==='已投递'||st==='不投了')jmk.style.display='none';
+    else jmk.addEventListener('click',function(){markApplied(j);});
+  }
   var jst=card.querySelector('.jstatus');jst.innerHTML='';
   (OPTS['投递状态']||[]).forEach(function(o){var op=document.createElement('option');op.value=o.text;op.textContent=o.text;jst.appendChild(op)});
   jst.value=st;
   jst.addEventListener('change',function(){
     if(!jst.value||jst.value===st){jst.value=st;return}
-    jst.disabled=true;
-    db.updateRecord({databaseId:'GgZ71tywhs4HEZytFSqXTP',recordId:recId(j),properties:{'投递状态':{select:jst.value}}}).then(function(){return jst.value==='已投递'?syncTracking(j):null}).then(reloadAll).catch(function(e){console.error('[database] 更新失败:'+((e&&e.message)||String(e)));jst.disabled=false});
+    jst.disabled=true;var val=jst.value;
+    db.updateRecord({databaseId:JOBS_ID,recordId:recId(j),properties:{'投递状态':{select:val}}}).then(function(){
+      return val==='已投递'?applyToTracking(j):null;
+    }).then(function(){try{refreshAll()}catch(e){}setTimeout(function(){try{reloadAll()}catch(e){}},1600)})
+      .catch(function(e){console.error('[database] 更新失败:'+((e&&e.message)||String(e)));jst.disabled=false;toast('更新失败：'+((e&&e.message)||String(e)),'err')});
   });
-  card.querySelector('.jdel').addEventListener('click',function(){if(!confirm('确定删除「'+plain(j['公司'])+'」这条岗位吗？'))return;db.deleteRecord({databaseId:'GgZ71tywhs4HEZytFSqXTP',recordId:recId(j)}).then(reloadAll).catch(function(e){console.error('[database] 删除失败:'+((e&&e.message)||String(e)))})});
+  card.querySelector('.jdel').addEventListener('click',function(){if(!confirm('确定删除「'+plain(j['公司'])+'」这条岗位吗？'))return;db.deleteRecord({databaseId:JOBS_ID,recordId:recId(j)}).then(reloadAll).catch(function(e){console.error('[database] 删除失败:'+((e&&e.message)||String(e)))})});
   return card;
 }
-function syncTracking(rec){
-  var company=fieldText(rec,'公司');if(!company)return Promise.resolve();
-  var exists=state.apps.some(function(a){return fieldText(a,'公司')===company});if(exists)return Promise.resolve();
-  var p={'公司':{text:company},'岗位':{text:fieldText(rec,'岗位方向')||'校招岗位'},'当前阶段':{select:'已投递'},'投递日期':{date:today()},'节点说明':{text:'由岗位看板一键标记自动生成'}};
-  var u=urlVal(rec['投递链接']);if(u.link)p['相关链接']={url:{text:'网申入口',link:u.link}};
-  return db.addRecord({databaseId:'oBGkMFTv9Xv4Xn5gFOK18S',properties:p}).catch(function(e){console.error('[database] 投递跟踪写入失败:'+((e&&e.message)||String(e)))});
-}
+/* 「标已投」与状态下拉共用同一条同步链路：岗位状态 + 投递跟踪表一次写清，界面立刻反映 */
 function markApplied(rec){
-  db.updateRecord({databaseId:'GgZ71tywhs4HEZytFSqXTP',recordId:recId(rec),properties:{'投递状态':{select:'已投递'}}}).then(function(){return syncTracking(rec)}).then(reloadAll).catch(function(e){console.error('[database] 标已投失败:'+((e&&e.message)||String(e)));alert('更新失败，请刷新页面重试');});
+  applyToTracking(rec).then(function(){try{refreshAll()}catch(e){}setTimeout(function(){try{reloadAll()}catch(e){}},1600)},
+    function(){try{refreshAll()}catch(e){}});
 }
 function renderJobs(){
   var box=$('at_jobCards'),rows=filteredJobs();
@@ -4278,20 +4491,35 @@ function buildJobCard(j){
   var dEl=card.querySelector('[data-field="截止日期"]');
   var dd=dOnly(j['截止日期']);
   if(dd){var n=diffDays(today(),dd);dEl.textContent=(n<0?'已截止(' + dd + ')':(n===0?'今天截止':n+'天后截止(' + dd + ')'));if(n<0)dEl.style.color='var(--red)';else if(n<=3)dEl.style.color='var(--orange)';}else{dEl.textContent='截止时间待定';}
-  card.querySelector('[data-field="投递链接"]').addEventListener('click',function(e){e.preventDefault();var l=jobLink(j);if(l){openLink(l)}else{showIntel(fieldText(j,'公司'),nkId(j))}});
+  card.querySelector('[data-field="投递链接"]').addEventListener('click',function(e){e.preventDefault();var l=jobLink(j);if(l){pendArm(j);openLink(l)}else{showIntel(fieldText(j,'公司'),nkId(j))}});
   card.querySelector('.jsearch').addEventListener('click',function(){showIntel(fieldText(j,'公司'),nkId(j))});
   card.__mtRec=j;
   var mbtn=card.querySelector('.jmatch');if(mbtn)mbtn.addEventListener('click',function(){mtRun(j,mbtn,card);});
   mtRenderRow(card,j);
-  card.querySelector('.jmark').addEventListener('click',function(){markApplied(j);});
+  /* 去重：状态已定（已投递 / 不投了）时隐藏「标已投」——否则它与右侧状态下拉的「已投递」是同一动作的两个入口。
+     注意 .btn 是 display:inline-flex，hidden 属性压不住，必须显式 display:none。 */
+  var jmk2=card.querySelector('.jmark');
+  if(jmk2){
+    if(st==='已投递'||st==='不投了')jmk2.style.display='none';
+    else jmk2.addEventListener('click',function(){markApplied(j);});
+  }
   var jst=card.querySelector('.jstatus');jst.innerHTML='';
   (OPTS['投递状态']||[]).forEach(function(o){var op=document.createElement('option');op.value=o.text;op.textContent=o.text;jst.appendChild(op)});jst.value=st;
-  jst.addEventListener('change',function(){if(!jst.value||jst.value===st){jst.value=st;return}jst.disabled=true;db.updateRecord({databaseId:'GgZ71tywhs4HEZytFSqXTP',recordId:recId(j),properties:{'投递状态':{select:jst.value}}}).then(function(){return jst.value==='已投递'?syncTracking(j):null}).then(reloadAll).catch(function(e){console.error('[database] 更新失败:'+((e&&e.message)||String(e)));jst.disabled=false})});
+  jst.addEventListener('change',function(){
+    if(!jst.value||jst.value===st){jst.value=st;return}
+    jst.disabled=true;var val=jst.value;
+    db.updateRecord({databaseId:JOBS_ID,recordId:recId(j),properties:{'投递状态':{select:val}}}).then(function(){
+      return val==='已投递'?applyToTracking(j):null;
+    }).then(function(){try{refreshAll()}catch(e){}setTimeout(function(){try{reloadAll()}catch(e){}},1600)})
+      .catch(function(e){console.error('[database] 更新失败:'+((e&&e.message)||String(e)));jst.disabled=false;toast('更新失败：'+((e&&e.message)||String(e)),'err')});
+  });
   card.querySelector('.jdel').addEventListener('click',function(){if(!confirm('确定删除「'+plain(j['公司'])+'」这条岗位吗？'))return;db.deleteRecord({databaseId:'GgZ71tywhs4HEZytFSqXTP',recordId:recId(j)}).then(reloadAll).catch(function(e){console.error('[database] 删除失败:'+((e&&e.message)||String(e)))})});
   return card;
 }
-function syncTracking(rec){var company=fieldText(rec,'公司');if(!company)return Promise.resolve();var exists=state.apps.some(function(a){return fieldText(a,'公司')===company});if(exists)return Promise.resolve();var p={'公司':{text:company},'岗位':{text:fieldText(rec,'岗位方向')||'校招岗位'},'当前阶段':{select:'已投递'},'投递日期':{date:today()},'节点说明':{text:'由岗位看板一键标记自动生成'}};var u=urlVal(rec['投递链接']);if(u.link)p['相关链接']={url:{text:'网申入口',link:u.link}};return db.addRecord({databaseId:'oBGkMFTv9Xv4Xn5gFOK18S',properties:p}).catch(function(e){console.error('[database] 操作失败:'+((e&&e.message)||String(e)))});}
-function markApplied(rec){db.updateRecord({databaseId:'GgZ71tywhs4HEZytFSqXTP',recordId:recId(rec),properties:{'投递状态':{select:'已投递'}}}).then(function(){return syncTracking(rec)}).then(reloadAll).catch(function(e){console.error('[database] 标已投失败:'+((e&&e.message)||String(e)));alert('更新失败，请刷新页面重试');});}
+function markApplied(rec){
+  applyToTracking(rec).then(function(){try{refreshAll()}catch(e){}setTimeout(function(){try{reloadAll()}catch(e){}},1600)},
+    function(){try{refreshAll()}catch(e){}});
+}
 function renderJobs(){
   var box=$('so_jobCards'),rows=filteredSOE();
   setText('so_jobCnt',rows.length+' 家');

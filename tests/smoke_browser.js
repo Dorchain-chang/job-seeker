@@ -247,6 +247,110 @@ const MOCK = `
   const afterQueries = await page.evaluate(() => window.__MOCK__.queries);
   const fired = await page.evaluate(() => window.__MOCK__.fired);
 
+  // 投递闭环（v49）：入口去重 / 口径同源 / 一次同步 / 跳转回来一问
+  const applyLoop = await page.evaluate(async () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const vis = (el) => !!el && getComputedStyle(el).display !== 'none' && el.offsetWidth > 0;
+    const txt = (id) => { const e = document.getElementById(id) || document.getElementById('ov_' + id); return e ? e.textContent.trim() : ''; };
+    const out = { docHidden: document.hidden };
+
+    // 1) 岗位卡入口去重：状态已定的卡（已投递 / 不投了）不能再出现可点的「标已投」
+    const cards = Array.from(document.querySelectorAll('#at_jobCards .jcard'));
+    const stText = (c) => { const f = c.querySelector('[data-field="投递状态"]'); return f ? f.textContent.trim() : ''; };
+    const done = cards.filter((c) => stText(c) === '已投递');
+    const todo = cards.filter((c) => stText(c) === '待投递');
+    out.cards = cards.length;
+    out.doneCards = done.length;
+    out.doneMark = done.filter((c) => vis(c.querySelector('.jmark'))).length;
+    out.todoCards = todo.length;
+    out.todoMark = todo.filter((c) => vis(c.querySelector('.jmark'))).length;
+
+    // 2) 投递跟踪卡：阶段已在流程里（含「已投递」）时「已投」按钮必须收起 —— 它和阶段 chip 里的「已投递」是重复入口
+    const acards = Array.from(document.querySelectorAll('#secApps .acard, #ov_secApps .acard'));
+    const isHidden = (el) => !!el && getComputedStyle(el).display === 'none';
+    out.acards = acards.length;
+    out.acardStages = acards.map((c) => ((c.querySelector('[data-field="当前阶段"]') || {}).textContent || '').trim());
+    out.acardQuickShown = acards.filter((c) => {
+      const st = ((c.querySelector('[data-field="当前阶段"]') || {}).textContent || '').trim();
+      return st !== '已终止' && !isHidden(c.querySelector('.aquick'));
+    }).length;
+
+    // 3) 口径同源：统计卡「已投出」== 漏斗各阶段之和（两者都只数投递跟踪表）
+    const fc = [];
+    for (let i = 0; i < 7; i++) fc.push(Number(txt('fcnt' + i)) || 0);
+    out.funnel = fc;
+    out.funnelSum = fc.reduce((a, b) => a + b, 0);
+    out.stDone = Number(txt('stDone')) || 0;
+    out.sameSource = out.funnelSum === out.stDone;
+    const stEl = document.getElementById('ov_stDone') || document.getElementById('stDone');
+    out.doneLabel = stEl && stEl.parentNode ? ((stEl.parentNode.querySelector('span') || {}).textContent || '').trim() : '';
+
+    // 3) 一次同步：点「待投递」卡片的「标已投」→ 本机立刻有投递跟踪记录 + 有可见提示 + 统计卡跟着涨
+    if (todo[0]) {
+      const co = ((todo[0].querySelector('[data-field="公司"]') || {}).textContent || '').trim();
+      out.co = co;
+      out.syncedBefore = !!window.findAppByCompany(co);
+      const w0 = window.__MOCK__.writes;
+      todo[0].querySelector('.jmark').click();
+      await sleep(700);
+      out.syncedAfter = !!window.findAppByCompany(co);
+      out.toastTxt = ((document.querySelector('.toast') || {}).textContent || '').trim();
+      out.writes = window.__MOCK__.writes - w0;
+      out.stDoneAfter = Number(txt('stDone')) || 0;
+    }
+
+    // 4a) 节流：刚点开链接（离开不足 4 秒）不能弹卡
+    localStorage.setItem('wb_pendApply', JSON.stringify({ company: '太快公司', position: '', at: Date.now() }));
+    window.pendCheck();
+    out.earlyAsk = !!document.querySelector('.askcard');
+
+    // 4b) 回到页面一问：出卡 → 「岗位不一样」展开编辑区 → 「投了」写库并清 pending
+    localStorage.setItem('wb_pendApply', JSON.stringify({ company: out.co || '测试公司', position: '算法实习生', at: Date.now() - 6000 }));
+    window.pendCheck();
+    await sleep(160);
+    let ask = document.querySelector('.askcard');
+    out.askShown = !!ask;
+    out.askText = ask ? ask.querySelector('.askq').textContent.trim() : '';
+    if (ask) {
+      ask.querySelector('.askEdit').click();
+      out.askEditOpen = !ask.querySelector('.askedit').hidden;
+      const w1 = window.__MOCK__.writes;
+      ask.querySelector('.askYes').click();
+      await sleep(500);
+      out.askWrites = window.__MOCK__.writes - w1;
+    }
+    out.askClosed = !document.querySelector('.askcard');
+    out.pendCleared = !localStorage.getItem('wb_pendApply');
+
+    // 4c) 「没投」→ 该公司 24 小时内不再追问
+    localStorage.setItem('wb_pendApply', JSON.stringify({ company: '不追问公司', position: '', at: Date.now() - 6000 }));
+    window.pendCheck();
+    await sleep(160);
+    ask = document.querySelector('.askcard');
+    out.askShown2 = !!ask;
+    if (ask) { ask.querySelector('.askNo').click(); await sleep(80); }
+    out.skipAsked = window.pendSkipped('不追问公司');
+    out.askGone2 = !document.querySelector('.askcard');
+    localStorage.removeItem('wb_pendSkip');
+    return out;
+  });
+  console.log('投递闭环: 岗位卡', applyLoop.cards, '张（已投递', applyLoop.doneCards, '/ 待投递', applyLoop.todoCards, '）',
+    '| 已投递卡仍有可见「标已投」=', applyLoop.doneMark, '| 待投递卡可见「标已投」=', applyLoop.todoMark);
+  console.log('  口径同源: 漏斗', JSON.stringify(applyLoop.funnel), '和=', applyLoop.funnelSum, 'vs 统计卡', applyLoop.stDone, '=', applyLoop.sameSource, '| 统计卡标签=', applyLoop.doneLabel);
+  console.log('  一次同步:', applyLoop.co, applyLoop.syncedBefore, '→', applyLoop.syncedAfter, '| 写库', applyLoop.writes, '次 | 已投出', applyLoop.stDone, '→', applyLoop.stDoneAfter, '| 提示=', (applyLoop.toastTxt || '').slice(0, 40));
+  console.log('  回来一问: 太早不弹=', applyLoop.earlyAsk, '| 弹卡=', applyLoop.askShown, applyLoop.askText, '| 编辑区展开=', applyLoop.askEditOpen, '| 投了写库=', applyLoop.askWrites, '| 关闭=', applyLoop.askClosed, '| 清 pending=', applyLoop.pendCleared);
+  console.log('  「没投」: 弹卡=', applyLoop.askShown2, '| 记入跳过=', applyLoop.skipAsked, '| 关闭=', applyLoop.askGone2);
+  console.log('  投递卡', applyLoop.acards, '张（阶段', (applyLoop.acardStages || []).join('/'), '）| 阶段已推进却仍显示「已投」=', applyLoop.acardQuickShown);
+  if (applyLoop.doneCards < 1 || applyLoop.doneMark !== 0) errors.push('已投递卡仍能点「标已投」：状态入口重复');
+  if (applyLoop.acards < 1 || applyLoop.acardQuickShown !== 0) errors.push('投递卡「已投」与阶段列表入口重复');
+  if (applyLoop.todoCards < 1 || applyLoop.todoMark !== applyLoop.todoCards) errors.push('「标已投」按钮被误删');
+  if (!applyLoop.sameSource || applyLoop.doneLabel !== '已投出') errors.push('统计卡与投递漏斗口径不同源');
+  if (applyLoop.syncedBefore || !applyLoop.syncedAfter || !applyLoop.toastTxt || applyLoop.writes < 1) errors.push('标已投未同步到投递跟踪');
+  if (applyLoop.earlyAsk) errors.push('离开不足 4 秒就弹了确认卡');
+  if (!applyLoop.askShown || !applyLoop.askClosed || !applyLoop.pendCleared) errors.push('跳转回来一问未工作');
+  if (applyLoop.askShown && !applyLoop.askEditOpen) errors.push('「岗位不一样」未展开编辑区');
+  if (!applyLoop.askShown2 || !applyLoop.skipAsked || !applyLoop.askGone2) errors.push('「没投」跳过未生效');
+
   // 内存/规模指标
   const mem = await page.evaluate(() => (performance.memory ? {
     usedMB: Math.round(performance.memory.usedJSHeapSize / 1048576),
