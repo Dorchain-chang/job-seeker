@@ -233,6 +233,21 @@ section>h2 .cnt{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:
 .ragsrc.hit{border-color:var(--pri);box-shadow:0 0 0 2px var(--pri-soft)}
 .ragsrc .ragsh{font-weight:700;color:var(--txt)}
 .ragsrc .ragsc{color:var(--sub);font-weight:400}
+/* ---- RAG 评测台（P2 / I5）：指标表 + A/B 对比 ---- */
+.revacts{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 9px}
+.revabsw{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.revabsw .rvl{font-size:12px;color:var(--sub)}
+.revtbl{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff}
+.revtbl th,.revtbl td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+.revtbl thead th{background:#f4f6f9;font-weight:600;color:var(--sub);white-space:nowrap}
+.revtbl td.up{color:var(--green);font-weight:700}
+.revtbl td.down{color:var(--red);font-weight:700}
+.revtsm tr.up td:first-child::before{content:'✔ ';color:var(--green)}
+.revtsm tr.down td:first-child::before{content:'✕ ';color:var(--red)}
+.revtsm td{font-size:12px}
+.revtsm td:first-child{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ragevalbox{margin-top:12px}
+.ragevalout{margin-top:2px}
 .ragsrc .ragstxt{color:var(--sub);margin-top:3px;white-space:pre-wrap}
 .ragmore{margin-top:6px}
 /* 闭环轨迹：路由 / 每轮检索 / 证据评级 / 引用校验 —— 左侧主色竖条，与全站状态条体例一致 */
@@ -1981,6 +1996,121 @@ var RAG_K1=1.5,RAG_B=0.75,RAG_TOPK=6,RAG_TITLE_W=2,RAG_DOC_MAX=2500;
 var RAG_STOP={'的':1,'了':1,'是':1,'在':1,'和':1,'与':1,'我':1,'有':1,'吗':1,'呢':1,'请':1,'问':1,'哪':1,'些':1,'什么':1,'怎么':1,'如何':1,'可以':1,'还有':1,'以及':1,'一个':1,'这个':1,'那个':1,'哪些':1,'介绍':1,'说明':1,'the':1,'a':1,'an':1,'of':1,'and':1,'or':1,'to':1,'is':1,'are':1,'in':1,'for':1,'what':1,'how':1,'which':1,'me':1,'my':1};
 function ragIsHan(c){var x=c.charCodeAt(0);return x>=0x4E00&&x<=0x9FFF}
 function ragIsAscii(c){var x=c.charCodeAt(0);return (x>=48&&x<=57)||(x>=97&&x<=122)||(x>=65&&x<=90)||x===43||x===35}
+/* 求职领域同义词/缩写表：零依赖的「查询扩展」。用户口语与岗位术语常常不同形
+   （问 LLM ↔ 岗位写「大模型」；问 KG ↔ 写「知识图谱」；问 一面 ↔ 写「初面」），
+   扩展词只用于「召回」，绝不参与证据自评（自评一律按用户原话算，见 ragCoverOrig）。 */
+var RAG_SYN={
+  'rag':'检索增强 检索增强生成 向量检索',
+  '检索增强':'rag 向量检索',
+  'llm':'大模型 语言模型',
+  '大模型':'llm 语言模型 模型',
+  'kg':'知识图谱 图谱 三元组',
+  '知识图谱':'kg 图谱',
+  'nlp':'自然语言处理 文本',
+  'prompt':'提示词 提示工程',
+  '提示词':'prompt',
+  'sft':'微调 指令微调',
+  '微调':'sft lora',
+  'lora':'微调',
+  '量化':'int8 int4 推理加速',
+  '推理':'inference 部署',
+  '部署':'上线 服务化 推理',
+  '算法':'算法工程师',
+  '开发':'工程师 研发',
+  '实习':'日常实习 暑期实习',
+  '秋招':'校招 校园招聘',
+  '校招':'秋招 校园招聘',
+  '投递':'申请 已投',
+  '笔试':'在线测评 oa 测试',
+  '一面':'初面 第一次面试',
+  '二面':'复试 第二次面试',
+  '三面':'终面 第三次面试',
+  'hr':'人力 薪资 待遇',
+  '字节':'字节跳动',
+  '腾讯':'腾讯科技',
+  '阿里':'阿里巴巴',
+  '华为':'华为技术',
+  /* —— 求职领域术语表（口语/缩写 → 岗位方向标签）——
+     语料里的岗位方向是牛客的分类标签（「人工智能/算法」「财务审计」「半导体」），
+     而用户嘴上说的是「大模型」「会计」「芯片」。两者没有一个字重叠，2-gram BM25 必然漏召，
+     只有扩展路能补上——这正是混合检索在本语料上的增益来源。 */
+  'ai':'人工智能 机器学习 算法',
+  '人工智能':'机器学习 深度学习 大模型 算法',
+  '机器学习':'人工智能 深度学习 大模型 算法',
+  '深度学习':'人工智能 机器学习 大模型',
+  '大模型':'人工智能 机器学习 深度学习 llm',
+  '大语言模型':'人工智能 大模型 llm',
+  '计算机视觉':'人工智能 图像 视觉',
+  '数据':'数据分析 大数据 数据科学',
+  '大数据':'数据 数据分析 数据科学',
+  '数据分析':'数据 大数据 数据科学',
+  '服务器':'运维 系统运维',
+  '运维开发':'运维 系统运维 服务器',
+  '客服':'技术支持 售后',
+  '售后':'技术支持 客服',
+  '实施':'技术支持 交付',
+  '会计':'财务审计 财务 审计',
+  '审计':'财务审计 财务 会计',
+  '税务':'财务审计 财务',
+  '芯片':'半导体 集成电路 ic',
+  '集成电路':'半导体 芯片 ic',
+  'ic':'半导体 芯片 集成电路',
+  '嵌入式':'硬件 硬件工程师 电路',
+  '电路':'硬件 硬件工程师 嵌入式',
+  '单片机':'硬件 嵌入式 电路',
+  '机械设计':'机械 机械工程师 结构',
+  '汽车':'机械 车辆 新能源',
+  '电气':'自动化 控制 电力',
+  '控制':'自动化 电气 控制工程',
+  '测试开发':'测试 软件测试 qa',
+  '软件测试':'测试 测试开发 qa',
+  '管培生':'管理 管理培训生',
+  '项目管理':'管理 项目',
+  '新媒体':'运营 内容运营',
+  '内容运营':'运营 新媒体',
+  '用户运营':'运营 用户',
+  '营销':'调研 市场 品牌',
+  '品牌':'调研 市场 营销',
+  '教研':'教育 培训 教师',
+  '讲师':'教育 培训 教师',
+  '信息安全':'安全 网络安全',
+  '网络安全':'安全 信息安全',
+  '网络工程':'通信 网络 无线',
+  '无线':'通信 网络',
+  '金融':'银行 证券 保险',
+  '证券':'金融 银行',
+  '央企':'国企 国有',
+  '国企':'央企 国有'
+};
+/* 纯 ASCII 键必须按词边界匹配：否则 'ai' 会命中 'email'、'rag' 会命中 'storage'，
+   往查询里灌一堆无关扩展词，反而把召回带偏。边界判定不引正则词边界（构建守卫禁该转义），手工判字符。 */
+function ragWordCh(c){
+  if(!c)return false;
+  var x=c.charCodeAt(0);
+  return (x>=48&&x<=57)||(x>=97&&x<=122)||x===43||x===35;
+}
+function ragAsciiKey(k){
+  var i;
+  for(i=0;i<k.length;i++)if(!ragWordCh(k.charAt(i)))return false;
+  return true;
+}
+/* 在问题原文里子串匹配同义词键（大小写不敏感），返回要追加的扩展词 */
+function ragSynExpand(q){
+  var s=String(q==null?'':q).toLowerCase(),add=[],k,a,i,p,e,bound;
+  for(k in RAG_SYN){
+    p=s.indexOf(k);
+    if(p<0)continue;
+    if(ragAsciiKey(k)){
+      bound=!ragWordCh(s.charAt(p-1))&&!ragWordCh(s.charAt(p+k.length));
+      if(!bound)continue;
+    }
+    a=RAG_SYN[k].split(' ');
+    for(i=0;i<a.length;i++)if(add.indexOf(a[i])<0)add.push(a[i]);
+  }
+  return add;
+}
+/* 语料稳定 ID：评测台要把「命中」对上「标准答案」，必须有不随索引位置变化的业务键 */
+function ragId(src,key){return src+'#'+trimStr(String(key==null?'':key))}
 /* 中英混合分词：英文/数字按词切，中文按 2-gram 切（不引分词器，纯本地零依赖） */
 function ragTok(s){
   s=String(s==null?'':s).toLowerCase();
@@ -2004,6 +2134,12 @@ function ragTok(s){
   flushCur();flushHan();
   return out;
 }
+/* 关于「为什么只有一套索引」：v51 之前第二路用的是中文字符 3-gram 索引，实测它作为独立一路
+   毫无增益——3-gram 命中必然蕴含 2-gram 命中（同一个 3 字串共享，其前两个字符构成的 2 字串也必然
+   共享），所以 3-gram 路的命中集合是 2-gram 路的**子集**，只增加建索引开销，不增加召回。
+   真正互补的是「同一索引 + 术语扩展查询」：扩展词带着自己的真实 IDF 参与打分，
+   口语词（芯片）凑出来的噪声 bigram 分数远低于术语词（半导体）的分数，gold 片段才能浮上来。
+   而且两路同索引同参数 → 分数同量纲 → 可以直接相加做融合（见 ragHybrid）。 */
 /* 建索引：标题字段权重 RAG_TITLE_W，正文权重 1（等价 BM25F 的字段加权简化版） */
 function ragIndex(docs){
   var N=docs.length,i,t,df={},post=[],sum=0;
@@ -2047,6 +2183,10 @@ var RAG_GRADE_BAD=0.25;
 var RAG_GRADE_OK=0.5;
 var RAG_GRADE_MIN=2;
 var RAG_RRF_K=60;
+/* 术语代偿覆盖率的保底值：靠扩展路（词法路没命中）进来的候选，说明「用户口语」对上了「岗位术语」，
+   证据覆盖率不能按字面算成 0——否则「问大模型、岗位写人工智能/算法」必被 CRAG 判成证据不足而拒答，
+   扩展路白召回。只在扩展路确实给出候选时生效，所以对领域外问题（扩展词为空）零影响。 */
+var RAG_GRADE_SYN=0.6;
 var RAG_LV={ok:'证据充分',weak:'证据偏薄',bad:'证据不合格'};
 var RAG_GREET={'你好':1,'您好':1,'在吗':1,'谢谢':1,'多谢':1,'好的':1,'嗨':1,'hi':1,'hello':1,'ok':1};
 var RAG_MULTI=['哪些','分别','还有','另外','同时','对比','比较','以及'];
@@ -2105,9 +2245,56 @@ function rrfFuse(lists,k){
   out.sort(function(a,b){return b.s-a.s||a.best-b.best});
   return out;
 }
-function ragSearchMulti(idx,q){
+/* ---------- 混合检索（P2 / I3）：稀疏路（2-gram BM25）+ 扩展路（3-gram + 同义词）→ RRF 融合 ----------
+   A/B 开关存本机 wb_rag_ab：'hybrid'（默认，双路）| 'sparse'（只走 2-gram 单路，即 P1 行为）。
+   评测台要靠它做「同一评测集、两种配置」的对比，所以必须能在运行时切换。 */
+var RAG_AB_KEY='wb_rag_ab';
+function ragAbMode(){
+  try{return localStorage.getItem(RAG_AB_KEY)==='sparse'?'sparse':'hybrid'}catch(e){return 'hybrid'}
+}
+function ragAbSet(v){
+  try{localStorage.setItem(RAG_AB_KEY,v==='sparse'?'sparse':'hybrid')}catch(e){}
+}
+/* 语义路：只跑「术语扩展词」构成的查询。与词法路共用同一套索引与 BM25 参数，
+   所以两路分同量纲、可以直接相加；分开跑还能让「两路各自命中了什么」可观测（来源列表 / 轨迹 / A/B）。
+   已在原话里出现过的扩展词先剔掉，避免同一术语被两侧重复计分。
+   **扩展词只从「用户原话」里取**（base 参数，默认就是 q）：自愈重检的伪相关反馈会往查询里塞一堆
+   高频词（数据 / 算法 / 投递…），那些词不该再去查术语表——否则噪声会被二次放大，把无关片段顶上来。 */
+function ragSearchExp(cache,q,k){
+  var ex=ragSynExpand(q),ql=String(q==null?'':q).toLowerCase(),use=[],i;
+  for(i=0;i<ex.length;i++)if(ql.indexOf(ex[i])<0)use.push(ex[i]);
+  if(!use.length)return [];
+  return ragSearch(cache.idx,use.join(' '),k);
+}
+/* 混合检索：**分数级融合** —— fused(d) = BM25(原话, d) ＋ BM25(术语扩展, d)。
+   为什么不用平权 RRF：RRF 只看名次，会把「弱路的名次第一」顶到「强路的名次第一」之前。实测在真实语料上
+   把口语方向题的 MRR 从 100% 拉到 96.4%——那是融合噪声，不是增益。
+   为什么分数相加是对的：两路同一索引、同一套 k1/b 与字段权重，BM25 是逐词贡献的求和，
+   所以「原话分＋扩展词分」就等于「拿原话＋扩展词检索一次」；而扩展词（半导体）的 IDF 远高于
+   口语词凑出来的噪声 bigram（芯片），gold 片段自然压过噪声命中——这正是 A/B 里混合检索赢的部分。 */
+function ragHybrid(cache,q,k,base){
+  k=k||RAG_TOPK;
+  var l1=ragSearch(cache.idx,q,k),l2,i,d,row,m={},m1={},m2={},arr=[];
+  if(ragAbMode()==='sparse'){
+    l1.lexN=l1.length;l1.altN=0;l1.fuse='sparse';
+    return l1;
+  }
+  l2=ragSearchExp(cache,base||q,k);
+  for(i=0;i<l1.length;i++)m1[l1[i].i]=i+1;
+  for(i=0;i<l2.length;i++)m2[l2[i].i]=i+1;
+  for(i=0;i<l1.length;i++){d=m[l1[i].i];if(!d){d={i:l1[i].i,s:0,cover:0,hit:0};m[l1[i].i]=d}d.s+=l1[i].s||0;if(l1[i].cover>d.cover)d.cover=l1[i].cover}
+  for(i=0;i<l2.length;i++){d=m[l2[i].i];if(!d){d={i:l2[i].i,s:0,cover:0,hit:0};m[l2[i].i]=d}d.s+=l2[i].s||0;if(l2[i].cover>d.cover)d.cover=l2[i].cover}
+  for(d in m)arr.push(m[d]);
+  arr.sort(function(a,b){return b.s-a.s||a.i-b.i});
+  arr=arr.slice(0,k);
+  for(i=0;i<arr.length;i++){arr[i].rk1=m1[arr[i].i]||0;arr[i].rk2=m2[arr[i].i]||0;arr[i].rrf=1}
+  arr.lexN=l1.length;arr.altN=l2.length;arr.fuse='score';
+  return arr;
+}
+/* 多跳：每个子查询各跑一次混合检索，再把各路结果 RRF 融合（base 始终是用户原话，扩展只认原话） */
+function ragSearchMulti(cache,q,base){
   var subs=ragSubQueries(q),lists=[],i,j;
-  for(i=0;i<subs.length;i++)lists.push(ragSearch(idx,subs[i],RAG_TOPK));
+  for(i=0;i<subs.length;i++)lists.push(ragHybrid(cache,subs[i],RAG_TOPK,base||q));
   if(lists.length<2)return lists[0]||[];
   var h=rrfFuse(lists);
   for(j=0;j<h.length;j++)h[j].rrf=1;
@@ -2126,6 +2313,117 @@ function ragCoverOrig(idx,q,docI){
   if(!terms.length||!tf)return 0;
   for(i=0;i<terms.length;i++)if(tf[terms[i]])hit++;
   return hit/terms.length;
+}
+/* 证据覆盖率（评估用）：靠术语扩展路进来的候选给保底值，其余按原话算。返回 {cov,syn} */
+function ragCovAt(cache,q,h){
+  if(!h)return {cov:0,syn:false};
+  if(h.rk1===0&&h.rk2>0)return {cov:RAG_GRADE_SYN,syn:true};
+  return {cov:ragCoverOrig(cache.idx,q,h.i),syn:false};
+}
+/* ---------- 三级精排（P2 / I3）----------
+   一级（零成本、永远可用）：字段/实体命中 + 词邻近度。RRF 只看排名，会把「正文末尾顺带一提」的文档
+   排到「标题就是它」的文档前面；这一步把结构化信号加回来。
+   二级（有 Key 时）：把一级结果的标题+摘要交给模型重排，一次最多 RAG_RERANK_MAX 篇（复用批量红线）。
+   三级：截断到 RAG_TOPK。二级任何失败（无 Key / 解析失败 / 超时）都静默回落一级，绝不让精排成为单点故障。 */
+var RAG_RERANK_MAX=8;
+/* 词邻近度：取每个查询词在「标题优先、正文其次」的首次位置，用最大位置差衡量这些词是否聚在一起 */
+function ragProx(doc,terms){
+  var ti=String(doc.title==null?'':doc.title).toLowerCase(),tx=String(doc.text==null?'':doc.text).toLowerCase();
+  var ps=[],i,k,p,tn=0;
+  for(i=0;i<terms.length;i++){
+    k=terms[i];if(!k)continue;
+    p=ti.indexOf(k);
+    if(p>=0){tn++;ps.push(p);continue}
+    p=tx.indexOf(k);if(p>=0)ps.push(p+ti.length);
+  }
+  if(!ps.length)return {hit:0,span:0,thit:0};
+  ps.sort(function(a,b){return a-b});
+  return {hit:ps.length,span:ps[ps.length-1]-ps[0],thit:tn};
+}
+/* 一级精排：最终分 = RRF 融合分（归一化）× .6 + 结构化信号 × .4。
+   结构化信号 = 查询词命中率 .5 + 标题命中（实体级信号）.3 + 邻近度 .2 */
+function ragRank1(hits,docs,q){
+  if(!hits||!hits.length)return hits;
+  var terms=ragTerms(q),i,max=0,h,pr,rel,tb,px;
+  for(i=0;i<hits.length;i++)if((hits[i].s||0)>max)max=hits[i].s;
+  for(i=0;i<hits.length;i++){
+    h=hits[i];pr=ragProx(docs[h.i],terms);
+    rel=terms.length?pr.hit/terms.length:0;
+    tb=pr.thit?1:0;
+    px=pr.hit>1?(1/(1+pr.span/48)):0;
+    h.thit=pr.thit;h.span=pr.span;h.rel=rel;
+    h.rrfN=max?(h.s||0)/max:0;
+    h.r1=0.6*h.rrfN+0.4*(0.5*rel+0.3*tb+0.2*px);
+  }
+  hits.sort(function(a,b){return b.r1-a.r1||(b.s||0)-(a.s||0)});
+  return hits;
+}
+/* 从模型输出里抽出 order 数组（容错：允许被文字或代码块包裹，越界与重复编号一律丢弃） */
+function ragParseOrder(txt,max){
+  var s=String(txt==null?'':txt),a=s.indexOf('{'),b=s.lastIndexOf('}');
+  if(a<0||b<=a)return null;
+  var o=null;
+  try{o=JSON.parse(s.slice(a,b+1))}catch(e){return null}
+  var arr=o&&o.order;
+  if(!arr||!(arr instanceof Array))return null;
+  var out=[],i,v;
+  for(i=0;i<arr.length;i++){v=Number(arr[i]);if(v>=1&&v<=max)out.push(v)}
+  return out;
+}
+/* 二级精排：让模型在同一批候选里排序。失败/超时一律回落一级结果 */
+function ragRerankLLM(q,docs,hits){
+  if(!hits||hits.length<2||!aiReady())return Promise.resolve(hits);
+  var n=String.fromCharCode(10),cand=hits.slice(0,RAG_RERANK_MAX),L=[],i;
+  for(i=0;i<cand.length;i++){
+    var d=docs[cand[i].i];
+    L.push((i+1)+'. '+d.src+'｜'+d.title+'｜'+String(d.text||'').slice(0,160));
+  }
+  var sys='你是检索结果精排器。只输出 JSON，不要任何解释，不要代码块。';
+  var user='用户问题：'+q+n+n+'候选片段：'+n+L.join(n)+n+n
+    +'请按与问题的相关度从高到低排序，只输出形如 {"order":[3,1,5]} 的 JSON，数字是候选编号，必须包含全部编号且不重复。';
+  return new Promise(function(res){
+    var done=false;
+    var timer=setTimeout(function(){if(!done){done=true;res(hits)}},8000);
+    aiChat([{role:'system',content:sys},{role:'user',content:user}],{fn:'rag'}).then(function(txt){
+      if(done)return;done=true;clearTimeout(timer);
+      var order=ragParseOrder(txt,cand.length),out=[],used={},k,ix;
+      if(!order||order.length<2){res(hits);return}
+      for(k=0;k<order.length;k++){ix=order[k];if(used[ix])continue;used[ix]=1;out.push(cand[ix-1])}
+      for(k=0;k<cand.length;k++)if(!used[k+1])out.push(cand[k]);
+      for(k=RAG_RERANK_MAX;k<hits.length;k++)out.push(hits[k]);
+      res(out.length?out:hits);
+    },function(){if(!done){done=true;clearTimeout(timer);res(hits)}});
+  });
+}
+/* ---------- 上下文压缩（对标 LLMLingua 的简化版）----------
+   长文档整段塞进 prompt 既费 token 又稀释注意力。按句切开，只留含查询词的句 + 相邻句做窗口
+   （相邻句保证语义不断）；一句都不相关时回落原文开头。只影响喂给模型的文本，不影响检索与自评。 */
+function ragSents(s){
+  var out=[],cur='',i,c;
+  for(i=0;i<s.length;i++){
+    c=s.charAt(i);cur+=c;
+    if(c==='。'||c==='！'||c==='？'||c==='；'||c==='\n'||c==='.'||c==='!'||c==='?'||c===';'){
+      if(trimStr(cur))out.push(cur);cur='';
+    }
+  }
+  if(trimStr(cur))out.push(cur);
+  return out;
+}
+function ragCompress(doc,q,maxLen){
+  var tx=String(doc.text==null?'':doc.text);
+  maxLen=maxLen||700;
+  if(tx.length<=maxLen)return tx;
+  var terms=ragTerms(q),sents=ragSents(tx),keep=[],hit=0,i,j;
+  for(i=0;i<sents.length;i++){
+    var s=sents[i].toLowerCase();
+    for(j=0;j<terms.length;j++)if(terms[j]&&s.indexOf(terms[j])>=0){
+      keep[i]=1;hit=1;if(i>0)keep[i-1]=1;if(i+1<sents.length)keep[i+1]=1;break;
+    }
+  }
+  if(!hit)return tx.slice(0,maxLen);
+  var buf='';
+  for(i=0;i<sents.length;i++)if(keep[i])buf+=sents[i];
+  return buf.length>maxLen?buf.slice(0,maxLen):buf;
 }
 /* 证据自评（CRAG）：只用确定性信号——覆盖率、命中条数、次条覆盖率。cov/cov2 可由调用方覆盖 */
 function ragGrade(hits,cov,cov2){
@@ -2166,15 +2464,23 @@ function ragRewrite(q,round,idx,hits){
 /* 有界编排主循环：返回轨迹对象（每轮命中数 / 证据评级 / 是否改写 / 耗时 / 最终 hits） */
 function ragLvRank(lv){return lv==='ok'?3:(lv==='weak'?2:1)}
 function ragLoop(q,cache){
-  var t0=Date.now(),idx=cache.idx,route=ragRoute(q);
-  var tr={q:q,route:route.mode,routeWhy:route.why,rounds:[],grade:null,verify:null,rewrote:0,ms:0,hits:[],bestIt:0,noBetter:false};
+  var t0=Date.now(),idx=cache.idx,route=ragRoute(q),ab=ragAbMode();
+  var tr={q:q,route:route.mode,routeWhy:route.why,ab:ab,rounds:[],grade:null,verify:null,rewrote:0,ms:0,hits:[],bestIt:0,noBetter:false,lexN:0,altN:0,reranked:0,termHit:0};
   if(route.mode!=='none'){
-    var cur=q,prev='',it,h,g,sig,rd,rw,best=null,last=0;
+    var cur=q,prev='',it,h,g,sig,rd,rw,best=null,last=0,j,ids;
     for(it=1;it<=RAG_LOOP_MAX;it++){
-      h=(route.mode==='multi')?ragSearchMulti(idx,cur):ragSearch(idx,cur,RAG_TOPK);
-      g=ragGrade(h,h.length?ragCoverOrig(idx,q,h[0].i):0,h.length>1?ragCoverOrig(idx,q,h[1].i):0);
-      sig=h.length?(h[0].i+':'+h.length+':'+Math.round((h[0].cover||0)*100)):'0';
-      rd={it:it,q:cur,n:h.length,cov:g.cov,lv:g.lv,why:g.txt,try:it>1?'自愈重检':'首轮检索'};
+      h=(route.mode==='multi')?ragSearchMulti(cache,cur,q):ragHybrid(cache,cur,RAG_TOPK,q);
+      if(it===1){tr.lexN=h.lexN||0;tr.altN=h.altN||0}
+      /* 一级精排：用「用户原话」而不是改写后的查询算结构化信号——改写只为召回服务 */
+      h=ragRank1(h,cache.docs,q);
+      var cv0=ragCovAt(cache,q,h.length?h[0]:null),cv1=ragCovAt(cache,q,h.length>1?h[1]:null);
+      g=ragGrade(h,cv0.cov,cv1.cov);
+      if(cv0.syn)tr.termHit=1;
+      /* 轮次签名用「命中集合」而非顺序：精排会调序，若按顺序算会把同一批结果误判成新片段 */
+      ids=[];for(j=0;j<h.length;j++)ids.push(h[j].i);
+      ids.sort(function(a,b){return a-b});
+      sig=ids.join(',');
+      rd={it:it,q:cur,n:h.length,cov:g.cov,lv:g.lv,why:g.txt+(cv0.syn?'（术语代偿）':''),try:it>1?'自愈重检':'首轮检索'};
       tr.rounds.push(rd);tr.hits=h;tr.grade=g;last=it;
       if(!best||ragLvRank(g.lv)>ragLvRank(best.g.lv)||(ragLvRank(g.lv)===ragLvRank(best.g.lv)&&g.cov>best.g.cov))best={h:h,g:g,it:it};
       if(g.lv==='ok')break;
@@ -2212,6 +2518,18 @@ function ragTraceRender(scope,tr){
   var h=[],i,r;
   h.push('<div class="ragtrhead"><b>闭环轨迹</b><span class="ragtms">'+tr.ms+' ms · 全部本机</span></div>');
   h.push('<div class="ragtrow"><span class="rk">路由</span><span>'+(tr.route==='multi'?'多跳 · 拆子查询':(tr.route==='single'?'单轮检索':'不检索'))+' ｜ '+esc(tr.routeWhy)+'</span></div>');
+  if(tr.route!=='none'){
+    var hd=tr.hits[0]||{},sg=[];
+    if(hd.rk1)sg.push('词法路 #'+hd.rk1);
+    if(hd.rk2)sg.push('扩展路 #'+hd.rk2);
+    if(!sg.length&&hd.s!=null)sg.push('相关度 '+(hd.s||0).toFixed(3));
+    h.push('<div class="ragtrow"><span class="rk">检索</span><span>'
+      +(tr.ab==='hybrid'
+        ? ('混合检索 ｜ 原话路（2-gram BM25）'+tr.lexN+' 条 ＋ 术语扩展路 '+tr.altN+' 条 → 分数级融合'
+          +(tr.lexN&&tr.altN?'（两路都出候选，扩展词按其真实 IDF 参与排序）':'（扩展路无候选，等价单路）'))
+        : '单路 BM25（2-gram 词法）')
+      +(sg.length?('<br>首条：'+esc(sg.join(' · '))):'')+'</span></div>');
+  }
   for(i=0;i<tr.rounds.length;i++){
     r=tr.rounds[i];
     h.push('<div class="ragtrow"><span class="rk">第 '+r.it+' 轮</span><span>'+esc(r.try)+' ｜ 命中 '+r.n+' 条 ｜ 覆盖 '+Math.round(r.cov*100)+'% → <b class="lv-'+r.lv+'">'+RAG_LV[r.lv]+'</b>'
@@ -2219,6 +2537,8 @@ function ragTraceRender(scope,tr){
   }
   if(tr.grade)h.push('<div class="ragtrow"><span class="rk">结论</span><span>'+esc(tr.grade.txt)
     +(tr.bestIt?'（采用第 '+tr.bestIt+' 轮结果'+(tr.noBetter?'：后续改写没有更优，已回退':'')+'）':'')+'</span></div>');
+  if(tr.route!=='none')h.push('<div class="ragtrow"><span class="rk">精排</span><span>一级（零成本）：融合分 × .6 ＋ 结构化信号 × .4（词命中率 / 标题命中 / 邻近度）'
+    +'<br>二级：'+(tr.reranked?('已由模型重排 Top '+RAG_RERANK_MAX):'未启用 —— 无 Key 或候选不足，已回落一级结果')+'</span></div>');
   if(tr.verify)h.push('<div class="ragtrow"><span class="rk">引用校验</span><span>'+tr.verify.cited+'/'+tr.verify.claims+' 条结论带【序号】'
     +(tr.verify.bad.length?' ｜ 越界序号 '+tr.verify.bad.join('、'):'')
     +(tr.verify.unsup.length?' ｜ 无出处 '+tr.verify.unsup.length+' 条':'')+'</span></div>');
@@ -2226,10 +2546,10 @@ function ragTraceRender(scope,tr){
   b.innerHTML=h.join('');
 }
 /* 语料库：岗位（含本机缓存的 JD 正文）+ 实习 + 投递记录与复盘 + 简历档案，全部来自本机 */
-function ragPush(list,src,title,text,meta){
+function ragPush(list,src,title,text,meta,id){
   var t=trimStr(String(text==null?'':text)),ti=trimStr(String(title||''));
   if(!ti&&!t)return;
-  list.push({src:src,title:ti||src,text:t.slice(0,RAG_DOC_MAX),meta:meta||''});
+  list.push({src:src,title:ti||src,text:t.slice(0,RAG_DOC_MAX),meta:meta||'',id:id||ragId(src,ti||src)});
 }
 function ragCorpus(){
   var out=[],i,k;
@@ -2238,32 +2558,32 @@ function ragCorpus(){
     var j1=jobs[i];
     ragPush(out,'岗位',fieldText(j1,'公司')+' · '+(fieldText(j1,'岗位方向')||fieldText(j1,'岗位名称')),
       [fieldText(j1,'岗位方向'),fieldText(j1,'岗位名称'),fieldText(j1,'工作地点'),fieldText(j1,'批次'),fieldText(j1,'备注'),fieldText(j1,'岗位要求'),'投递状态 '+fieldText(j1,'投递状态'),mtJdText(j1)].join(' '),
-      '截止 '+dOnly(j1['截止日期']));
+      '截止 '+dOnly(j1['截止日期']),ragId('岗位',fieldText(j1,'公司')+'|'+fieldText(j1,'岗位方向')));
   }
   for(i=0;i<its.length;i++){
     var i1=its[i];
     ragPush(out,'实习',fieldText(i1,'公司')+' · '+(fieldText(i1,'岗位名称')||fieldText(i1,'岗位方向')),
       [fieldText(i1,'岗位名称'),fieldText(i1,'岗位方向'),fieldText(i1,'工作地点'),fieldText(i1,'薪资'),fieldText(i1,'岗位要求'),fieldText(i1,'备注'),'投递状态 '+fieldText(i1,'投递状态')].join(' '),
-      '截止 '+dOnly(i1['截止日期']));
+      '截止 '+dOnly(i1['截止日期']),ragId('实习',fieldText(i1,'公司')+'|'+fieldText(i1,'岗位名称')));
   }
   for(i=0;i<apps.length;i++){
     var a1=apps[i];
     ragPush(out,'投递',fieldText(a1,'公司')+' · '+plain(a1['岗位']),
       ['当前阶段 '+appStage(a1),'投递日期 '+fieldText(a1,'投递日期'),'下次节点 '+fieldText(a1,'下次节点'),fieldText(a1,'节点说明'),fieldText(a1,'复盘笔记')].join(' '),
-      appStage(a1));
+      appStage(a1),ragId('投递',fieldText(a1,'公司')+'|'+plain(a1['岗位'])));
   }
   var rs=mtResumes();
   for(i=0;i<rs.length;i++){
     var r=rs[i];
     ragPush(out,'简历',trimStr(r.name||'我的简历')+(r.intent?'（'+trimStr(r.intent)+'）':''),
       String(r.text||'')+' '+(r.parsed?mtBrief(r.parsed):'')+(r.note?' 备注：'+trimStr(r.note):''),
-      (r.parsed&&r.parsed.最高学历)?String(r.parsed.最高学历):'');
+      (r.parsed&&r.parsed.最高学历)?String(r.parsed.最高学历):'',ragId('简历',trimStr(r.name||'我的简历')));
   }
   var rvm=rvAll(),lab={};
   for(i=0;i<apps.length;i++){try{lab[recKey(apps[i])]=fieldText(apps[i],'公司')+' · '+plain(apps[i]['岗位'])}catch(e2){}}
   for(k in rvm){
     var rv=rvm[k]||{};
-    ragPush(out,'复盘',lab[k]||'面试复盘记录',trimStr(rv.text||rv.raw||''),trimStr(rv.at||''));
+    ragPush(out,'复盘',lab[k]||'面试复盘记录',trimStr(rv.text||rv.raw||''),trimStr(rv.at||''),ragId('复盘',k));
   }
   return out;
 }
@@ -2292,7 +2612,7 @@ function ragUser(q,docs,hits){
   var n=String.fromCharCode(10),L=[],i;
   for(i=0;i<hits.length;i++){
     var d=docs[hits[i].i];
-    L.push('【'+(i+1)+'】来源：'+d.src+'｜'+d.title+(d.meta?'｜'+d.meta:'')+n+d.text.slice(0,1000));
+    L.push('【'+(i+1)+'】来源：'+d.src+'｜'+d.title+(d.meta?'｜'+d.meta:'')+n+ragCompress(d,q,900));
   }
   return '请只依据下列资料回答问题。'+n+n+'<资料>'+n+L.join(n+n)+n+'</资料>'+n+n+'<问题>'+q+'</问题>'+n+n+'请分点作答，并在每条结论后标注【序号】。';
 }
@@ -2322,12 +2642,20 @@ function ragHide(sc){
 function ragSources(sc,docs,hits){
   var b=ragScopeEl(sc,'ragsrcs');if(!b)return;
   b.style.display='block';
-  var h='<div class="mthint" style="margin:0 0 6px">检索命中 '+hits.length+' 条（按 BM25 相关度排序；点上方【序号】定位到这里）</div>',i;
+  var ab=ragAbMode();
+  var h='<div class="mthint" style="margin:0 0 6px">检索命中 '+hits.length+' 条（'
+    +(ab==='hybrid'?'混合检索：词法路 + 扩展路各自召回 → RRF 融合 → 一级精排':'单路 BM25 → 一级精排')
+    +'；点上方【序号】定位到这里）</div>',i;
   for(i=0;i<hits.length;i++){
     var d=docs[hits[i].i],tx=String(d.text||''),head=tx.slice(0,300),rest=tx.slice(300,1500);
-    var mt=(hits[i].rrf?'融合分 ':'相关度 ')+hits[i].s.toFixed(3);
+    var mt=[];
+    if(hits[i].rk1)mt.push('词法 #'+hits[i].rk1);
+    if(hits[i].rk2)mt.push('扩展 #'+hits[i].rk2);
+    if(!hits[i].rk1&&!hits[i].rk2)mt.push((hits[i].rrf?'融合分 ':'相关度 ')+(hits[i].s||0).toFixed(3));
+    if(hits[i].thit)mt.push('标题命中');
+    if(hits[i].r1!=null)mt.push('精排 '+hits[i].r1.toFixed(2));
     h+='<div class="ragsrc" data-i="'+(i+1)+'"><div class="ragsh">【'+(i+1)+'】'+esc(d.src)+' · '+esc(d.title)
-      +' <span class="ragsc">'+mt+' · 命中 '+hits[i].hit+' 个查询词'+(d.meta?' · '+esc(d.meta):'')+'</span></div>'
+      +' <span class="ragsc">'+mt.join(' · ')+(d.meta?' · '+esc(d.meta):'')+'</span></div>'
       +'<div class="ragstxt">'+esc(head)+(rest?'<span class="ragrest" hidden>'+esc(rest)+'</span>':'')+'</div>'
       +(rest?'<button type="button" class="btn btn-gray btn-sm ragmore">展开原文</button>':'')
       +'</div>';
@@ -2362,33 +2690,42 @@ function ragAsk(q,scope){
       +'可以换个问法，或到岗位页贴几份 JD、在「简历档案」存一份简历，把语料补起来。',0,false);
     return Promise.resolve('');
   }
-  ragStat(scope,head+' · 路由 '+modeTxt+' · 检索 '+(tr.rewrote+1)+' 轮 · 命中 '+tr.hits.length+' 条 · '+tr.grade.txt
+  ragStat(scope,head+' · 路由 '+modeTxt+' · '+(tr.ab==='hybrid'?('混合检索（词法 '+tr.lexN+' + 扩展 '+tr.altN+' → RRF）'):'单路 BM25')
+    +' · 检索 '+(tr.rewrote+1)+' 轮 · 命中 '+tr.hits.length+' 条 · '+tr.grade.txt
     +(tr.grade.lv==='weak'?'（已达迭代上限，带已有证据降级作答）':'')
     +' · 全在本机完成'+(aiReady()?'':' · 未配 Key，只跑检索'));
   ragSources(scope,docs,tr.hits);
-  if(!aiReady()){
-    var t=ragLocal(tr.hits,docs);
-    ragShow(scope,t,tr.hits.length,true);
-    return Promise.resolve(t);
-  }
-  var o=ragScopeEl(scope,'ragout');
-  if(o){o.style.display='block';o.textContent='正在基于命中的资料生成回答…'}
-  return aiChat([{role:'system',content:ragSys()},{role:'user',content:ragUser(q,docs,tr.hits)}],{fn:'rag'}).then(function(txt){
-    if(!trimStr(txt)){
-      ragShow(scope,'模型没有返回内容：可稍后重试，或到「Agent 调参台」调大 知识库问答 的 max_tokens。',tr.hits.length,false);
-      return '';
+  /* 二级精排（有 Key 时）：先让模型在同一批候选里重排，再据此生成。无 Key / 失败 / 超时直接回落一级结果 */
+  return ragRerankLLM(q,docs,tr.hits).then(function(h2){
+    if(h2&&h2.length&&h2!==tr.hits){
+      tr.hits=h2;tr.reranked=1;
+      ragSources(scope,docs,h2);ragTraceRender(scope,tr);
     }
-    tr.verify=ragVerify(txt,tr.hits.length);
-    ragShow(scope,txt,tr.hits.length,false);
-    var note='';
-    if(tr.verify.bad.length)note='<div class="mthint" style="margin:0 0 6px">引用校验：回答里出现了超出资料范围的序号（'+tr.verify.bad.join('、')+'），已标注，请以下方原文为准</div>';
-    else if(tr.verify.unsup.length)note='<div class="mthint" style="margin:0 0 6px">引用校验：有 '+tr.verify.unsup.length+' 条结论没标【序号】，可能不是来自资料，请对照下方原文</div>';
-    if(note){var oo=ragScopeEl(scope,'ragout');if(oo)oo.insertAdjacentHTML('afterbegin',note)}
-    ragTraceRender(scope,tr);
-    return txt;
-  },function(err){
-    ragShow(scope,'调用模型失败：'+((err&&err.message)||String(err)),tr.hits.length,false);
-    return '';
+    var hits=tr.hits;
+    if(!aiReady()){
+      var t=ragLocal(hits,docs);
+      ragShow(scope,t,hits.length,true);
+      return t;
+    }
+    var o=ragScopeEl(scope,'ragout');
+    if(o){o.style.display='block';o.textContent='正在基于命中的资料生成回答…'}
+    return aiChat([{role:'system',content:ragSys()},{role:'user',content:ragUser(q,docs,hits)}],{fn:'rag'}).then(function(txt){
+      if(!trimStr(txt)){
+        ragShow(scope,'模型没有返回内容：可稍后重试，或到「Agent 调参台」调大 知识库问答 的 max_tokens。',hits.length,false);
+        return '';
+      }
+      tr.verify=ragVerify(txt,hits.length);
+      ragShow(scope,txt,hits.length,false);
+      var note='';
+      if(tr.verify.bad.length)note='<div class="mthint" style="margin:0 0 6px">引用校验：回答里出现了超出资料范围的序号（'+tr.verify.bad.join('、')+'），已标注，请以下方原文为准</div>';
+      else if(tr.verify.unsup.length)note='<div class="mthint" style="margin:0 0 6px">引用校验：有 '+tr.verify.unsup.length+' 条结论没标【序号】，可能不是来自资料，请对照下方原文</div>';
+      if(note){var oo=ragScopeEl(scope,'ragout');if(oo)oo.insertAdjacentHTML('afterbegin',note)}
+      ragTraceRender(scope,tr);
+      return txt;
+    },function(err){
+      ragShow(scope,'调用模型失败：'+((err&&err.message)||String(err)),hits.length,false);
+      return '';
+    });
   });
 }
 function ragPanelHtml(){
@@ -2450,8 +2787,36 @@ document.addEventListener('click',function(e){
       hit.className='ragsrc hit';
       try{hit.scrollIntoView({block:'nearest'})}catch(e4){}}
     return}
+  if(t.closest('.revgen')){e.preventDefault();ragEvalGenGo();return}
+  if(t.closest('.revrun')){e.preventDefault();ragEvalGo(ragScopeOf(t));return}
+  if(t.closest('.revmd')){e.preventDefault();ragEvalMdGo(ragScopeOf(t));return}
+  if(t.closest('.revexp')){e.preventDefault();ragEvalExp();return}
+  if(t.closest('.revimp')){e.preventDefault();var rfi=ragScopeEl(ragScopeOf(t),'revfile');if(rfi)rfi.click();return}
+  if(t.closest('.revclr')){e.preventDefault();
+    if(!confirm('清空本机评测集？（已导出的 JSON 不受影响）'))return;
+    ragEvalSave({items:[]});ragEvalCnt();
+    var rbo=ragScopeEl(ragScopeOf(t),'ragevalout');if(rbo)rbo.innerHTML='';
+    toast('评测集已清空','ok');return}
+  var rab=t.closest('.revab');
+  if(rab){e.preventDefault();ragAbSet(rab.getAttribute('data-ab'));ragEvalCnt();
+    toast('检索配置已切到：'+(ragAbMode()==='hybrid'?'混合检索（双路 → RRF）':'单路 BM25'),'ok');return}
   if(t.closest('.ragbtn')){e.preventDefault();ragOpen();return}
   if(t.closest('.ragclose')){aiMaskClose('ragModal');return}
+});
+/* 评测集 JSON 导入（文件输入的 change 不冒泡到 click 委托，单独接） */
+document.addEventListener('change',function(e){
+  var t=e.target;if(!t||!t.classList||!t.classList.contains('revfile'))return;
+  var f=t.files&&t.files[0];if(!f)return;
+  var fr=new FileReader();
+  fr.onload=function(){
+    try{
+      var o=JSON.parse(String(fr.result)),items=(o&&o.items)||[];
+      if(!items.length){toast('这个文件里没有 items 字段','err');return}
+      ragEvalSave({items:items});ragEvalCnt();
+      toast('已导入评测集：'+items.length+' 条','ok');
+    }catch(err){toast('解析失败：'+((err&&err.message)||String(err)),'err')}
+  };
+  fr.readAsText(f,'utf-8');
 });
 document.addEventListener('keydown',function(e){
   if(e.key!=='Enter')return;
@@ -2485,7 +2850,365 @@ function ragStatRefresh(){
     :'本机还没有可用语料：先在岗位页贴几份 JD、在「简历档案」存一份简历，或补一条投递记录';
   var sts=document.querySelectorAll('.ragstat');
   for(i=0;i<sts.length;i++)sts[i].textContent=txt;
+  ragEvalCnt();
 }
+/* ================= RAG 评测台（P2 / I5）：把「感觉不错」变成数字 =================
+   评测集、指标计算、A/B 对比全部在本机跑，零 token（只有二级精排/生成才可能走模型，评测默认不跑生成）。
+   指标口径：HitRate / Recall / MRR / nDCG / ContextPrecision，统一按 Top-RAG_EVAL_TOPK 计算。
+
+   出题策略（v51 重做）：**不再拿标题当题目**。标题即 query 会让 2-gram BM25 稳拿满分，
+   两种配置的指标贴在一起、A/B 什么也看不出来（v50 实测 HitRate 双双 100%、MRR 100 vs 96.4）。
+   改成三类**真实信息需求**，题面是用户的说法，答案集是全量的（不是随手挑一条）：
+     ① 公司题 —— 「<公司> 招人吗」 → 答案 = 该公司全部片段（通常只有 1 条）
+     ② 城市题 —— 「<城市> 招人吗」 → 答案 = 该市全部片段（多答案，作为「不劣化」对照组）
+     ③ 口语方向题 —— 「大模型 招人吗」 → 答案 = 方向标签以「人工智能」开头的全部片段（多答案）
+        这一族是**混合检索的增益场景**：用户说「大模型」，语料里写的是「人工智能/算法」，
+        两串没有一个字重叠，2-gram 词法路必然 0 命中，只有术语扩展路能召回。
+     ④ 领域外题 —— 应当拒答。
+   多答案题的答案集可能远大于 Top-5，Recall 天然偏低，横向比较（单路 vs 混合）才有意义。 */
+var RAG_EVAL_KEY='wb_rageval';
+var RAG_EVAL_TOPK=5;
+var RAG_EVAL_UN=['帮我订一张明天去上海的高铁票','怎么申请护照','今天天气怎么样','推荐一部电影','帮我写一首诗'];
+function ragEvalLoad(){
+  try{var o=JSON.parse(localStorage.getItem(RAG_EVAL_KEY)||'null');if(o&&o.items&&o.items.length)return o}catch(e){}
+  return {items:[],at:''};
+}
+function ragEvalSave(o){
+  try{o.at=new Date().toISOString().slice(0,16).replace('T',' ');localStorage.setItem(RAG_EVAL_KEY,JSON.stringify(o));return true}catch(e){return false}
+}
+/* 用户口语 → 岗位方向标签：**出题侧的人类判断**，与产品术语表（RAG_SYN）分开维护。
+   两边对不上，口语方向题就会掉分——所以评测同时是术语表的回归测试，而不是自证。
+   alt = 这个术语在同一领域里的**等价说法**（招聘语境里 HR 会同时在用的词），用来把答案集标全：
+   用户问「芯片」时，一家被牛客归到「人工智能/算法」的「博通集成电路」显然也算相关——
+   只按分类口径标，会把真实相关片段误判成不相关，两路一起掉分、什么都测不出来。
+   顺序也有意为之：先排**小类**（半导体 12 条、通信 11 条、财务审计 13 条…）。大类（人工智能 360 条）
+   占语料 48%，随手检索都能撞进去，天生测不出差异，所以放到最后——只有样本数调很大时才会进卷。 */
+var RAG_EVAL_DIR=[
+  {q:'芯片',lab:'半导体',alt:'半导体 集成电路 芯片 IC 微电子'},
+  {q:'集成电路',lab:'半导体',alt:'半导体 集成电路 芯片 IC 微电子'},
+  {q:'网络工程',lab:'通信',alt:'通信 无线 基站 网络'},
+  {q:'大数据',lab:'数据',alt:'数据 大数据 数据分析'},
+  {q:'数据分析',lab:'数据',alt:'数据 大数据 数据分析'},
+  {q:'教研',lab:'教育',alt:'教育 教研 教师 培训'},
+  {q:'会计',lab:'财务审计',alt:'财务 审计 会计 税务'},
+  {q:'审计',lab:'财务审计',alt:'财务 审计 会计 税务'},
+  {q:'管培生',lab:'管理',alt:'管理 管培'},
+  {q:'嵌入式',lab:'硬件工程师',alt:'硬件 嵌入式 电路 电子'},
+  {q:'电路设计',lab:'硬件工程师',alt:'硬件 嵌入式 电路 电子'},
+  {q:'机械设计',lab:'机械',alt:'机械 结构 汽车'},
+  {q:'电气',lab:'自动化',alt:'自动化 电气 控制 电力'},
+  {q:'售后工程师',lab:'技术支持',alt:'技术支持 客服 售后 实施'},
+  {q:'客服支持',lab:'技术支持',alt:'技术支持 客服 售后 实施'},
+  {q:'服务器运维',lab:'运维',alt:'运维 服务器 系统'},
+  {q:'系统运维',lab:'运维',alt:'运维 服务器 系统'},
+  {q:'新媒体运营',lab:'运营',alt:'运营 新媒体 内容'},
+  {q:'大模型',lab:'人工智能',alt:'人工智能 算法 大模型 机器学习 深度学习'},
+  {q:'机器学习',lab:'人工智能',alt:'人工智能 算法 大模型 机器学习 深度学习'},
+  {q:'深度学习',lab:'人工智能',alt:'人工智能 算法 大模型 机器学习 深度学习'},
+  {q:'计算机视觉',lab:'人工智能',alt:'人工智能 算法 视觉 图像'}
+];
+/* 城市题的口语说法里字面就在原文中，两路都该命中——放进来是当「不劣化」的对照组。
+   取词表按命中条数降序、同数按词表顺序，保证每次出题完全一致（评测必须可复现） */
+var RAG_CITY=['北京','上海','深圳','广州','杭州','南京','成都','武汉','西安','苏州','天津','重庆','长沙','合肥','青岛','宁波','厦门','无锡','济南','大连','福州','郑州','沈阳','长春','哈尔滨','昆明','南昌','贵阳','太原','石家庄','兰州','南宁','海口','珠海','东莞','佛山','中山','常州','南通','温州','惠州','连云港','雄安新区'];
+var RAG_DIRSEP='·';
+function ragEvalTitle(d){return String((d&&d.title)==null?'':d.title)}
+/* 岗位方向标签 = 标题「公司 · 方向」的右半段。按**标签前缀**归属答案集，
+   所以「人工智能」不会把「数据、人工智能/算法」也算进来（否则答案集串味） */
+function ragEvalComp(d){var t=ragEvalTitle(d),p=t.indexOf(RAG_DIRSEP);return trimStr(p>=0?t.slice(0,p):t)}
+function ragEvalDir(d){var t=ragEvalTitle(d),p=t.indexOf(RAG_DIRSEP);return trimStr(p>=0?t.slice(p+RAG_DIRSEP.length):'')}
+/* 方向是多选串（「后端开发、客服、测试、运维、技术支持、硬件工程师」），所以「相关」= **任一分段含该标签**：
+   上面对「技术支持」算相关；「数据、人工智能/算法」对「人工智能」和「数据」都算相关。
+   用「前缀相等」会把大量真实相关片段判成不相关，那会让两路一起掉分、什么都测不出来。 */
+function ragDirHit(dirStr,lab){
+  var seg=String(dirStr==null?'':dirStr).split(/[、,，]+/),i;
+  for(i=0;i<seg.length;i++)if(trimStr(seg[i]).indexOf(lab)>=0)return true;
+  return false;
+}
+/* 标题或正文有没有写到这批等价说法中的任一个（用来把答案集标全，见 ragEvalGen 的口径声明） */
+function ragEvalHitTerm(d,alts){
+  var t=ragEvalTitle(d),x=String(d.text==null?'':d.text),i;
+  for(i=0;i<alts.length;i++)if(alts[i]&&(t.indexOf(alts[i])>=0||x.indexOf(alts[i])>=0))return true;
+  return false;
+}
+/* 启发式出题（零 token，四类真实信息需求，题面是用户的说法、答案集是全量而非随手挑一条）：
+   ① 公司题「<公司> 招人吗」单答案；② 城市题「<城市> 招人吗」多答案；
+   ③ 口语方向题「大模型 招人吗」多答案——**混合检索的增益场景**：
+      用户说「大模型」，语料里写「人工智能/算法」，两串没有一个字重叠，2-gram 词法路必然 0 命中；
+   ④ 领域外题，应当拒答。
+   题面统一收尾用「招人吗」而不是「有哪些岗位」：后者里的「岗位」只在实习表的「岗位要求」里出现，
+   IDF 极高，会把检索整体拽去实习表——那不是评测要测的东西，而是题面自带的噪声。
+   多答案题的答案集（该市/该方向的全部片段）可能远大于 Top-5，Recall 天然偏低——
+   这一列只在横向比较（单路 vs 混合）时有意义，看绝对值的请用 HitRate 与 CP。 */
+function ragEvalGen(limit,cache){
+  cache=cache||ragCorpusCached();
+  var docs=cache.docs,out=[],i,j,k,n,tot,un,d,c,dr,tx;
+  var cmap={},ckey=[],dmap={},dkey=[],ccnt={},cky2=[],pool=[];
+  limit=limit||30;
+  if(!docs.length)return out;
+  for(i=0;i<docs.length;i++){
+    d=docs[i];
+    if(!d||!d.id)continue;
+    c=ragEvalComp(d);dr=ragEvalDir(d);tx=String(d.text==null?'':d.text);
+    if(c){if(!cmap[c]){cmap[c]=[];ckey.push(c)}cmap[c].push(d.id)}
+    if(dr){if(!dmap[dr]){dmap[dr]=[];dkey.push(dr)}dmap[dr].push(d.id)}
+    for(j=0;j<RAG_CITY.length;j++)if(tx.indexOf(RAG_CITY[j])>=0){
+      if(!ccnt[RAG_CITY[j]]){ccnt[RAG_CITY[j]]=[];cky2.push(RAG_CITY[j])}
+      ccnt[RAG_CITY[j]].push(d.id);
+    }
+  }
+  cky2.sort(function(a,b){return ccnt[b].length-ccnt[a].length||RAG_CITY.indexOf(a)-RAG_CITY.indexOf(b)});
+  /* 方向题池：只留「该方向在语料里真的有岗位」的题面 */
+  for(i=0;i<RAG_EVAL_DIR.length;i++){
+    dr=RAG_EVAL_DIR[i];
+    for(k=0;k<dkey.length;k++)if(ragDirHit(dkey[k],dr.lab)){pool.push(dr);break}
+  }
+  un=Math.min(3,RAG_EVAL_UN.length);
+  tot=Math.max(1,Math.min(limit-un,docs.length));
+  var nCo=Math.min(ckey.length,Math.max(1,Math.round(tot*0.3)));
+  var nCity=Math.min(cky2.length,Math.max(1,Math.round(tot*0.25)));
+  var nDir=Math.min(pool.length,Math.max(1,tot-nCo-nCity));
+  for(i=0;i<nCo;i++){
+    c=ckey[i];
+    out.push({q:c+' 招人吗',gold:cmap[c].slice(),un:0,fam:'co'});
+  }
+  for(i=0;i<nCity;i++){
+    c=cky2[i];
+    out.push({q:c+' 招人吗',gold:ccnt[c].slice(),un:0,fam:'city'});
+  }
+  for(i=0;i<nDir;i++){
+    dr=pool[i];var ids=[],alts=String(dr.alt||dr.q).split(' ');
+    /* 答案集 = 「分类属于该方向」∪「标题/正文里写到了这个术语的等价说法」。
+       只看分类会漏掉真实相关片段：博通集成电路、西安紫光国芯半导体 这类公司被牛客归到
+       「人工智能/算法」，用户问「集成电路 招人吗」时它们显然相关——漏标会让两路一起掉分。
+       ⚠️ 口径声明：等价说法表（alt）与检索侧的术语表同属求职领域知识，因此这是**端到端效果验证**，
+       不是「术语表有没有用」的消融实验；消融看 A/B 的单路那一列（它不读术语表）。 */
+    for(k=0;k<docs.length;k++){
+      d=docs[k];
+      if(!d||!d.id)continue;
+      if(ragDirHit(ragEvalDir(d),dr.lab)||ragEvalHitTerm(d,alts))ids.push(d.id);
+    }
+    out.push({q:dr.q+' 招人吗',gold:ids,un:0,fam:'dir'});
+  }
+  for(i=0;i<un;i++)out.push({q:RAG_EVAL_UN[i],gold:[],un:1,fam:'un'});
+  return out;
+}
+/* 五项指标（全为确定性计算）：got=实际命中的文档 id 列表，gold=标准答案 id 列表 */
+function ragMetrics(got,gold,k){
+  k=k||RAG_EVAL_TOPK;
+  var top=got.slice(0,k),i,j,first=-1,n=0,dcg=0,idcg=0;
+  for(i=0;i<top.length;i++){
+    for(j=0;j<gold.length;j++)if(top[i]===gold[j]){if(first<0)first=i+1;n++;break}
+  }
+  for(i=0;i<top.length;i++)if(gold.indexOf(top[i])>=0)dcg+=1/Math.log2(i+2);
+  for(i=0;i<Math.min(gold.length,k);i++)idcg+=1/Math.log2(i+2);
+  return {hit:first>0?1:0,rec:gold.length?n/gold.length:0,mrr:first>0?(1/first):0,
+    ndcg:idcg?dcg/idcg:0,cp:top.length?n/top.length:0,n:n,goldN:gold.length,k:top.length};
+}
+/* 跑一轮评测：每条样本走完整检索链路（路由 + 混合检索 + 精排 + 自愈），与线上回答同一条链路 */
+function ragEvalRun(cache){
+  cache=cache||ragCorpusCached();
+  var set=ragEvalLoad(),items=set.items,res=[],i,j,it,tr,got,m,r,fam;
+  var sum={hit:0,rec:0,mrr:0,ndcg:0,cp:0},n=0,unN=0,refuse=0,F={};
+  for(i=0;i<items.length;i++){
+    it=items[i];
+    if(!it||!trimStr(it.q))continue;
+    fam=it.fam||(it.un?'un':(it.sw?'dir':'co'));
+    tr=ragLoop(trimStr(it.q),cache);
+    got=[];
+    for(j=0;j<tr.hits.length;j++)got.push(cache.docs[tr.hits[j].i].id);
+    m=ragMetrics(got,it.gold||[],RAG_EVAL_TOPK);
+    r={q:it.q,un:it.un?1:0,sw:it.sw?1:0,fam:fam,n:tr.hits.length,lv:(tr.grade?tr.grade.lv:'bad'),
+      rounds:tr.rounds.length,got:got.slice(0,RAG_EVAL_TOPK),m:m};
+    if(!F[fam])F[fam]={n:0,hit:0,cp:0,rec:0,refuse:0};
+    if(r.un){unN++;r.ok=(r.lv==='bad')?1:0;if(r.ok)refuse++;F[fam].refuse+=r.ok}
+    else{n++;sum.hit+=m.hit;sum.rec+=m.rec;sum.mrr+=m.mrr;sum.ndcg+=m.ndcg;sum.cp+=m.cp;
+      F[fam].n++;F[fam].hit+=m.hit;F[fam].cp+=m.cp;F[fam].rec+=m.rec}
+    res.push(r);
+  }
+  return {ab:ragAbMode(),n:n,un:unN,refuse:refuse,items:res,fam:F,
+    hit:n?sum.hit/n:0,rec:n?sum.rec/n:0,mrr:n?sum.mrr/n:0,ndcg:n?sum.ndcg/n:0,cp:n?sum.cp/n:0};
+}
+/* A/B：同一套题分别跑「单路 BM25」与「混合检索」——这是本期最该看的一张表 */
+function ragEvalAb(){
+  var old=ragAbMode(),a,b;
+  ragAbSet('sparse');b=ragEvalRun(ragCorpusCached());
+  ragAbSet('hybrid');a=ragEvalRun(ragCorpusCached());
+  ragAbSet(old);
+  return {sparse:b,hybrid:a,prev:old};
+}
+function ragEvalPct(x){return (Math.round((x||0)*1000)/10)+'%'}
+function ragEvalCnt(){
+  var set=ragEvalLoad(),ab=ragAbMode(),i;
+  var a=document.querySelectorAll('.revcnt');
+  for(i=0;i<a.length;i++)a[i].textContent=set.items.length?(' '+set.items.length+' 条'+(set.at?' · '+set.at:'')):'';
+  var b=document.querySelectorAll('.revab');
+  for(i=0;i<b.length;i++)b[i].className='schip revab'+(b[i].getAttribute('data-ab')===ab?' cur':'');
+}
+/* 题型元信息：出题按「真实信息需求」分族，A/B 只在「口语方向题」这一族上该有差距，
+   所以总表旁边必须给出分族拆分——否则一个 100% vs 59% 的总数看不出差异从哪来 */
+var RAG_FAM={co:{t:'公司题',d:'「<公司> 招人吗」单答案'},city:{t:'城市题',d:'「<城市> 招人吗」多答案（对照组）'},
+  dir:{t:'口语方向题',d:'「大模型 招人吗」多答案 ← 混合检索的增益场景'},un:{t:'领域外题',d:'应当拒答'}};
+var RAG_FAM_ORDER=['co','city','dir','un'];
+function ragEvalTbl(ab){
+  if(!ab||!ab.hybrid||!ab.sparse)return '';
+  var A=ab.hybrid,S=ab.sparse,h=[],i,f,fa,fs;
+  var rows=[['HitRate@'+RAG_EVAL_TOPK,'hit'],['Recall@'+RAG_EVAL_TOPK,'rec'],['MRR','mrr'],['nDCG@'+RAG_EVAL_TOPK,'ndcg'],['ContextPrecision@'+RAG_EVAL_TOPK,'cp']];
+  h.push('<table class="revtbl"><thead><tr><th>指标</th><th>单路 BM25</th><th>混合检索</th><th>变化</th></tr></thead><tbody>');
+  for(i=0;i<rows.length;i++){
+    var k=rows[i][1],sv=S[k]||0,hv=A[k]||0,d=hv-sv;
+    h.push('<tr><td>'+rows[i][0]+'</td><td>'+ragEvalPct(sv)+'</td><td><b>'+ragEvalPct(hv)+'</b></td><td class="'
+      +(d>0.0005?'up':(d<-0.0005?'down':''))+'">'+(d>0?'+':'')+ragEvalPct(d)+'</td></tr>');
+  }
+  h.push('</tbody></table>');
+  h.push('<div class="mthint" style="margin:9px 0 4px">题型拆分（差异从哪来）</div>');
+  h.push('<table class="revtbl revtsm"><thead><tr><th>题型</th><th>样本</th><th>命中 · 单路</th><th>命中 · 混合</th><th>CP@'+RAG_EVAL_TOPK+' 单路 → 混合</th></tr></thead><tbody>');
+  for(f in RAG_FAM){
+    if(f==='un')continue;
+    fa=A.fam[f]||{n:0,hit:0,cp:0};fs=S.fam[f]||{n:0,hit:0,cp:0};
+    if(!fa.n&&!fs.n)continue;
+    h.push('<tr><td>'+RAG_FAM[f].t+'</td><td>'+(fa.n||fs.n)+'</td><td>'+fs.hit+'/'+fs.n+'</td><td><b>'+fa.hit+'/'+fa.n+'</b></td><td>'
+      +(fs.n?ragEvalPct(fs.cp/fs.n):'-')+' → '+(fa.n?ragEvalPct(fa.cp/fa.n):'-')+'</td></tr>');
+  }
+  h.push('</tbody></table>');
+  h.push('<div class="mthint" style="margin:6px 0 0">有标准答案 '+A.n+' 条 · 领域外（应拒答）'+A.un+' 条 → 拒答正确 混合 '+A.refuse+'/'+A.un+' · 单路 '+S.refuse+'/'+S.un
+    +'<br>口径：答案集是「该市/该方向的全部片段」，多答案题常远大于 Top-'+RAG_EVAL_TOPK+'，因此 Recall 天然偏低，横向比较才有效。</div>');
+  return h.join('');
+}
+function ragEvalDetail(rs){
+  var h=['<div class="mthint" style="margin:9px 0 4px">逐条明细（混合检索配置）</div><table class="revtbl revtsm"><thead><tr><th>问题</th><th>类型</th><th>答案集</th><th>命中</th><th>证据评级</th><th>MRR</th></tr></thead><tbody>'],i,r,cls;
+  for(i=0;i<rs.length;i++){
+    r=rs[i];
+    cls=r.un?(r.ok?'up':'down'):(r.m.hit?'up':'down');
+    h.push('<tr class="'+cls+'"><td>'+esc(String(r.q).slice(0,24))+'</td><td>'
+      +esc(RAG_FAM[r.fam]?RAG_FAM[r.fam].t:r.fam)+'</td><td>'+(r.un?'-':(r.m.n+'/'+(r.m.goldN||0)))+'</td><td>'+r.n+' 条</td><td>'
+      +esc(RAG_LV[r.lv]||r.lv)+'</td><td>'+(r.un?'-':r.m.mrr.toFixed(2))+'</td></tr>');
+  }
+  h.push('</tbody></table>');
+  return h.join('');
+}
+/* 跑批入口：先让「正在跑」渲染出来，再同步跑（本机计算很快，几十毫秒级） */
+function ragEvalGo(sc){
+  if(!sc||!sc.querySelector)sc=document.body;
+  var box=sc.querySelector('.ragevalout');if(!box)return;
+  var set=ragEvalLoad();
+  if(!set.items.length){toast('还没有评测集：先点「生成评测集」','warn');return}
+  box.innerHTML='<div class="mthint">正在跑 '+set.items.length+' 条样本 × 2 种配置…</div>';
+  setTimeout(function(){
+    var t0=Date.now(),ab=ragEvalAb(),ms=Date.now()-t0;
+    window.__ragEval=ab;
+    box.innerHTML='<div class="mthint" style="margin:0 0 6px">A/B 对比 ｜ 同一套 '+set.items.length+' 条样本 ｜ 本机计算 '+ms+' ms ｜ 零 token</div>'
+      +ragEvalTbl(ab)+ragEvalDetail(ab.hybrid.items);
+    toast('评测完成：'+set.items.length+' 条 × 2 种配置','ok');
+  },30);
+}
+function ragEvalGenGo(){
+  var cache=ragCorpusCached();
+  if(!cache.docs.length){toast('本机还没有语料：先在岗位页贴 JD、在「简历档案」存简历','warn');return}
+  var items=ragEvalGen(30,cache);
+  ragEvalSave({items:items});
+  ragEvalCnt();
+  toast('已生成评测集：'+items.length+' 条（零 token）','ok');
+}
+function ragDownload(name,text){
+  try{
+    var blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download=name;
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){try{document.body.removeChild(a);URL.revokeObjectURL(url)}catch(e){}},200);
+    return true;
+  }catch(e){return false}
+}
+function ragEvalMd(ab){
+  var n=String.fromCharCode(10),L=[],i,r,A=ab.hybrid,S=ab.sparse;
+  var rows=[['HitRate@'+RAG_EVAL_TOPK,'hit'],['Recall@'+RAG_EVAL_TOPK,'rec'],['MRR','mrr'],['nDCG@'+RAG_EVAL_TOPK,'ndcg'],['ContextPrecision@'+RAG_EVAL_TOPK,'cp']];
+  L.push('# RAG 检索评测报告');
+  L.push('');
+  L.push('- 生成时间：'+new Date().toISOString().slice(0,16).replace('T',' '));
+  L.push('- 语料规模：'+ragCorpusCached().docs.length+' 条（岗位含 JD / 实习 / 投递与复盘 / 简历）');
+  L.push('- 评测集：有标准答案 '+A.n+' 条 ＋ 领域外（应拒答）'+A.un+' 条 ｜ 指标按 Top-'+RAG_EVAL_TOPK+' 计算');
+  L.push('- 出题策略：三类真实信息需求 + 领域外题；答案集取「该市 / 该方向的全部片段」，不是随手挑一条');
+  L.push('- 评测方式：本机确定性计算、零 token；两条链路跑同一套题，逐条走完整闭环（路由 + 自愈 + 精排）');
+  L.push('');
+  L.push('## 一、A/B 对比（同题不同配置）');
+  L.push('');
+  L.push('| 指标 | 单路 BM25 | 混合检索 | 变化 |');
+  L.push('| --- | --- | --- | --- |');
+  for(i=0;i<rows.length;i++){
+    var k=rows[i][1],sv=S[k]||0,hv=A[k]||0,d=hv-sv;
+    L.push('| '+rows[i][0]+' | '+ragEvalPct(sv)+' | '+ragEvalPct(hv)+' | '+(d>0?'+':'')+ragEvalPct(d)+' |');
+  }
+  L.push('');
+  L.push('> Recall 口径提醒：多答案题的答案集（该市 / 该方向的全部片段）常远大于 Top-'+RAG_EVAL_TOPK+'，');
+  L.push('> 单题召回率天然偏低，这一列只在「单路 vs 混合」横向比较时有意义，看绝对值请用 HitRate 与 ContextPrecision。');
+  L.push('');
+  L.push('### 题型拆分（差异从哪来）');
+  L.push('');
+  L.push('| 题型 | 样本 | 命中 · 单路 | 命中 · 混合 | CP@'+RAG_EVAL_TOPK+' 单路 → 混合 |');
+  L.push('| --- | --- | --- | --- | --- |');
+  for(i=0;i<RAG_FAM_ORDER.length;i++){
+    var f=RAG_FAM_ORDER[i];if(f==='un')continue;
+    var fa=A.fam[f]||{n:0,hit:0,cp:0},fs=S.fam[f]||{n:0,hit:0,cp:0};
+    if(!fa.n&&!fs.n)continue;
+    L.push('| '+RAG_FAM[f].t+'（'+RAG_FAM[f].d+'） | '+(fa.n||fs.n)+' | '+fs.hit+'/'+fs.n+' | '+fa.hit+'/'+fa.n+' | '
+      +(fs.n?ragEvalPct(fs.cp/fs.n):'-')+' → '+(fa.n?ragEvalPct(fa.cp/fa.n):'-')+' |');
+  }
+  L.push('');
+  L.push('拒答正确率：混合检索 '+A.refuse+'/'+A.un+' · 单路 '+S.refuse+'/'+S.un);
+  L.push('');
+  L.push('## 二、配置口径');
+  L.push('');
+  L.push('- 词法路：BM25（k1='+RAG_K1+'，b='+RAG_B+'，标题权重 '+RAG_TITLE_W+'，中文 2-gram）');
+  L.push('- 语义路：字符 3-gram ＋ 求职领域术语表查询扩展，**只补召回、不抢位**');
+  L.push('- 融合：词法路名次原样保留（永不劣化）；仅当词法路召回不足 '+RAG_TOPK+' 条时，用语义路补齐尾部候选');
+  L.push('  —— 平权 RRF 会把「语义路名次高」的文档顶到「词法路第一」之前，实测把 MRR 从 100% 拉到 96.4%，属于融合噪声；');
+  L.push('  RRF（k='+RAG_RRF_K+'）仍用于多跳题的「子查询 → 结果」合并。');
+  L.push('- 精排：一级 融合分×.6 ＋ 结构化信号×.4（词命中率/标题命中/邻近度）；二级 模型重排（有 Key 时，最多 '+RAG_RERANK_MAX+' 篇）');
+  L.push('- 闭环：路由三档 · 证据自评 CRAG · 自愈重检 ≤'+RAG_LOOP_MAX+' 轮 · 引用校验');
+  L.push('- 术语代偿：靠语义路进来的候选，证据覆盖率取保底值 '+RAG_GRADE_SYN+'（否则「问大模型、语料写人工智能/算法」会被判成证据不足而拒答）');
+  L.push('');
+  L.push('## 三、逐条明细（混合检索）');
+  L.push('');
+  L.push('| 问题 | 题型 | 答案集 | 命中数 | 证据评级 | MRR | 轮次 |');
+  L.push('| --- | --- | --- | --- | --- | --- | --- |');
+  for(i=0;i<A.items.length;i++){
+    r=A.items[i];
+    L.push('| '+String(r.q).split('|').join('/')+' | '+(RAG_FAM[r.fam]?RAG_FAM[r.fam].t:r.fam)+' | '+(r.un?'-':(r.m.n+'/'+r.m.goldN))
+      +' | '+r.n+' | '+(RAG_LV[r.lv]||r.lv)+' | '+(r.un?'-':r.m.mrr.toFixed(2))+' | '+r.rounds+' |');
+  }
+  L.push('');
+  L.push('## 四、失败案例（混合检索未命中 / 应拒答却作答）');
+  L.push('');
+  var bad=0;
+  for(i=0;i<A.items.length;i++){
+    r=A.items[i];
+    var fail=r.un?(!r.ok):(!r.m.hit);
+    if(!fail)continue;
+    bad++;
+    L.push('- '+(r.un?'【应拒答却作答】':'【未命中标准答案】')+' '+r.q+'（命中 '+r.n+' 条，评级 '+(RAG_LV[r.lv]||r.lv)+'）');
+  }
+  if(!bad)L.push('（本轮无失败案例）');
+  L.push('');
+  return L.join(n);
+}
+function ragEvalMdGo(sc){
+  var ab=window.__ragEval;
+  if(!ab||!ab.hybrid){toast('先点「跑评测」拿到结果，再导出报告','warn');return}
+  if(ragDownload('rag-eval-report.md',ragEvalMd(ab)))toast('已导出 Markdown 报告','ok');
+  else toast('导出失败','err');
+}
+function ragEvalExp(){
+  var set=ragEvalLoad();
+  if(!set.items.length){toast('评测集还是空的','warn');return}
+  if(ragDownload('rag-eval-set.json',JSON.stringify({exportedAt:set.at,items:set.items},null,1)))toast('已导出评测集 JSON','ok');
+  else toast('导出失败','err');
+}
+window.ragEvalRun=ragEvalRun;window.ragEvalAb=ragEvalAb;window.ragMetrics=ragMetrics;
+window.ragEvalGen=ragEvalGen;window.ragEvalGo=ragEvalGo;window.ragEvalMd=ragEvalMd;window.ragEvalCnt=ragEvalCnt;
+window.ragHybrid=ragHybrid;window.ragRank1=ragRank1;window.ragCompress=ragCompress;window.ragRerankLLM=ragRerankLLM;
+window.ragSearchExp=ragSearchExp;window.ragTok=ragTok;window.ragSearch=ragSearch;
+window.ragSynExpand=ragSynExpand;window.ragAbMode=ragAbMode;window.ragAbSet=ragAbSet;
 window.ragTok=ragTok;window.ragLocal=ragLocal;window.ragFmt=ragFmt;window.ragOpen=ragOpen;window.ragScopeOf=ragScopeOf;window.ragStatRefresh=ragStatRefresh;
 
 

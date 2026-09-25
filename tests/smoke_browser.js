@@ -623,6 +623,102 @@ const MOCK = `
       && !!lpHit && !!lpHit.grade && lpHit.grade.lv !== 'bad' && lpHit.hits.length > 0 && typeof lpHit.ms === 'number';
     const vf = window.ragVerify ? window.ragVerify('结论一【1】' + String.fromCharCode(10) + '结论二【9】' + String.fromCharCode(10) + '这是一条很长的没有任何出处标注的结论内容', 3) : null;
     const verifyOk = !!vf && vf.bad.length === 1 && vf.bad[0] === 9 && vf.unsup.length === 1 && vf.claims === 3;
+    // 4c) P2 混合检索：术语扩展 / 双路分数融合 / 一级精排 / 上下文压缩
+    const synL = window.ragSynExpand ? window.ragSynExpand('LLM 岗位') : [];
+    const synR = window.ragSynExpand ? window.ragSynExpand('RAG 相关') : [];
+    const synOk = synL.indexOf('大模型') >= 0 && synR.indexOf('检索增强') >= 0;
+    // ASCII 键必须按词边界匹配：'ai' 不能命中 'email'（否则会把无关扩展词灌进查询）
+    const synBd = window.ragSynExpand ? window.ragSynExpand('send an email') : ['x'];
+    const synBoundOk = synBd.indexOf('人工智能') < 0 && (window.ragSynExpand('ai 岗位') || []).indexOf('人工智能') >= 0;
+    // 语义路用的是「扩展词单独检索」，与原话路共用同一套索引与 BM25 参数（分同量纲才能相加）
+    const hyb = window.ragHybrid && cache ? window.ragHybrid(cache, 'RAG 知识图谱', 5) : [];
+    const hybOk = hyb.length > 0 && hyb.lexN > 0 && hyb.altN > 0 && hyb.fuse === 'score';
+    const hybBothN = hyb.filter((x) => x.rk1 > 0 && x.rk2 > 0).length;
+    // 分数级融合的数学：同一片段在融合结果里的分 = 原话路分 + 扩展路分（两路同索引同参数，分同量纲）
+    const sumOk = (function () {
+      const l1 = window.ragSearch ? window.ragSearch(cache.idx, 'RAG 知识图谱', 5) : [];
+      const l2 = window.ragSearchExp ? window.ragSearchExp(cache, 'RAG 知识图谱', 5) : [];
+      const m1 = {}, m2 = {};
+      l1.forEach((x) => { m1[x.i] = x.s; });
+      l2.forEach((x) => { m2[x.i] = x.s; });
+      const shared = hyb.filter((x) => m1[x.i] != null && m2[x.i] != null);
+      if (!shared.length) return true;
+      return shared.every((x) => Math.abs(x.s - (m1[x.i] + m2[x.i])) < 1e-9);
+    })();
+    const rank1 = window.ragRank1 && cache ? window.ragRank1(hyb.slice(), cache.docs, 'RAG 知识图谱') : [];
+    const rankOk = rank1.length > 0 && typeof rank1[0].r1 === 'number' && rank1[0].r1 > 0 && typeof rank1[0].thit === 'number';
+    const compSrc = { title: 'x', text: '无关句子一。无关句子二。'.repeat(60) + '这一段明确提到 RAG 知识图谱 的检索增强。' + '尾巴句。'.repeat(30) };
+    const comp = window.ragCompress ? window.ragCompress(compSrc, 'RAG 知识图谱', 200) : '';
+    const compOk = comp.length > 0 && comp.length <= 200 && comp.indexOf('检索增强') >= 0 && comp.length < compSrc.text.length;
+    // 4d) 指标计算：手工构造已知命中，校验 HitRate / Recall / MRR / nDCG / ContextPrecision
+    const mm1 = window.ragMetrics ? window.ragMetrics(['a', 'b', 'c'], ['c'], 3) : null;
+    const mm2 = window.ragMetrics ? window.ragMetrics(['a', 'b', 'c'], ['b', 'c'], 3) : null;
+    const mm3 = window.ragMetrics ? window.ragMetrics(['a', 'b'], ['z'], 2) : null;
+    const metricsOk = !!mm1 && mm1.hit === 1 && Math.abs(mm1.rec - 1) < 1e-9 && Math.abs(mm1.mrr - 1 / 3) < 1e-9
+      && Math.abs(mm1.cp - 1 / 3) < 1e-9 && Math.abs(mm1.ndcg - 0.5) < 1e-9
+      && !!mm2 && Math.abs(mm2.rec - 1) < 1e-9 && Math.abs(mm2.mrr - 0.5) < 1e-9
+      && !!mm3 && mm3.hit === 0 && mm3.mrr === 0 && mm3.ndcg === 0 && mm3.rec === 0;
+    // 4e) A/B：切到单路 → 扩展路必须退出；切回混合 → 恢复
+    const ab0 = window.ragAbMode ? window.ragAbMode() : '';
+    if (window.ragAbSet) window.ragAbSet('sparse');
+    const hybSp = window.ragHybrid ? window.ragHybrid(window.ragCorpusCached(), 'RAG 知识图谱', 5) : [];
+    const abSpOk = (window.ragAbMode ? window.ragAbMode() : '') === 'sparse' && hybSp.altN === 0;
+    if (window.ragAbSet) window.ragAbSet('hybrid');
+    const hybHy = window.ragHybrid ? window.ragHybrid(window.ragCorpusCached(), 'RAG 知识图谱', 5) : [];
+    const abHyOk = (window.ragAbMode ? window.ragAbMode() : '') === 'hybrid' && hybHy.altN > 0;
+    if (window.ragAbSet) window.ragAbSet(ab0 === 'sparse' ? 'sparse' : 'hybrid');
+    // 4f) 评测台：面板齐全 → 生成评测集 → 跑批出指标 → A/B 表 → Markdown 报告
+    const evBox = document.querySelector('.ragevalbox');
+    const evUiOk = !!evBox && !!evBox.querySelector('.revgen') && !!evBox.querySelector('.revrun')
+      && !!evBox.querySelector('.revab[data-ab="hybrid"]') && !!evBox.querySelector('.revab[data-ab="sparse"]')
+      && !!evBox.querySelector('.ragevalout');
+    if (evBox) { const g = evBox.querySelector('.revgen'); if (g) g.click(); }
+    await sleep(80);
+    const evSet = window.ragEvalGen ? window.ragEvalGen(12) : [];
+    const evSetOk = evSet.length > 0 && evSet.filter((x) => x.un).length > 0 && evSet.filter((x) => x.gold && x.gold.length).length > 0;
+    // 出题必须分族（公司/城市/口语方向/领域外），且口语方向题的答案集要真的对上方向标签
+    const evFams = {};
+    evSet.forEach((x) => { evFams[x.fam] = (evFams[x.fam] || 0) + 1; });
+    const evFamOk = Object.keys(evFams).length >= 3;
+    const dirS = evSet.filter((x) => x.fam === 'dir')[0] || null;
+    const cityS = evSet.filter((x) => x.fam === 'city')[0] || null;
+    const evGoldOk = !!dirS && dirS.gold.length >= 5 && !!cityS && cityS.gold.length >= 5;
+    // 语义路（扩展词单独检索）必须真的召回得到：拿语料里确实存在的那个口语方向题验
+    const expS = window.ragSearchExp && dirS ? window.ragSearchExp(cache, dirS.q, 5) : [];
+    const expOk = expS.length > 0;
+    // 口语方向题：词法路应当 0 命中（题面词在语料里不存在），混合检索必须召回
+    let synHit = null;
+    if (dirS && window.ragHybrid) {
+      const cch = window.ragCorpusCached();
+      const oab = window.ragAbMode ? window.ragAbMode() : 'hybrid';
+      if (window.ragAbSet) window.ragAbSet('sparse');
+      const sp = window.ragHybrid(cch, dirS.q, 5);
+      if (window.ragAbSet) window.ragAbSet('hybrid');
+      const hy = window.ragHybrid(cch, dirS.q, 5);
+      if (window.ragAbSet) window.ragAbSet(oab === 'sparse' ? 'sparse' : 'hybrid');
+      // 单路：题面词一个都不在语料里 → 词法路 0 条；混合：语义路补齐 ≥1 条
+      synHit = { lex: sp.length, alt: (hy.altN || 0), hy: hy.length, lv: hy.lexN || 0 };
+    }
+    if (evBox) { const rr = evBox.querySelector('.revrun'); if (rr) rr.click(); }
+    await sleep(220);
+    const evOut = evBox && evBox.querySelector('.ragevalout') ? evBox.querySelector('.ragevalout').textContent : '';
+    const evOutOk = evOut.indexOf('HitRate') >= 0 && evOut.indexOf('混合检索') >= 0 && evOut.indexOf('题型拆分') >= 0;
+    const evRun = window.ragEvalRun ? window.ragEvalRun() : null;
+    const evRunOk = !!evRun && evRun.n > 0 && typeof evRun.hit === 'number' && typeof evRun.mrr === 'number'
+      && typeof evRun.ndcg === 'number' && typeof evRun.cp === 'number' && evRun.items.length > 0
+      && !!evRun.fam && !!evRun.fam.co && !!evRun.fam.dir;
+    const evAb = window.ragEvalAb ? window.ragEvalAb() : null;
+    const evAbOk = !!evAb && !!evAb.hybrid && !!evAb.sparse && evAb.hybrid.ab === 'hybrid' && evAb.sparse.ab === 'sparse';
+    // A/B 的两条硬结论：① 混合检索 HitRate 不低于单路（词法优先 + 语义补召回的保证）；
+    // ② 口语方向题上混合检索严格更优（题面词语料里没有，只有术语扩展路能召回）
+    const evNoLossOk = !!evAb && evAb.hybrid.hit >= evAb.sparse.hit - 1e-9;
+    const synGainOk = !!evAb && !!evAb.hybrid.fam.dir && !!evAb.sparse.fam.dir
+      && evAb.hybrid.fam.dir.hit > 0 && evAb.sparse.fam.dir.hit < evAb.hybrid.fam.dir.hit;
+    const evMd = window.ragEvalMd && evAb ? window.ragEvalMd(evAb) : '';
+    const evMdOk = evMd.indexOf('# RAG 检索评测报告') === 0 && evMd.indexOf('A/B 对比') > 0 && evMd.indexOf('逐条明细') > 0
+      && evMd.indexOf('题型拆分') > 0;
+    // 评测集是测试数据，跑完清掉，别污染本机
+    try { localStorage.removeItem('wb_rageval'); } catch (e) {}
     // 5) 卡片：点示例 chip → 出检索片段 + 引用角标 + 闭环轨迹；无 Key 时只检索不生成
     const sec = document.querySelector('.ragsec');
     const chip = sec ? sec.querySelector('.ragchip') : null;
@@ -670,6 +766,9 @@ const MOCK = `
     if (oldK != null) localStorage.setItem('wb_ai_key', oldK);
     if (oldR != null) localStorage.setItem('wb_resumes', oldR); else localStorage.removeItem('wb_resumes');
     return { tokOk, srcOk, srcs: JSON.stringify(srcs), hitOk, mono, none, routeOk, gradeOk, rrfOk, loopOk, verifyOk, traceOk, refuseOk, statOk, outOk, cites, citeOk, moreOk, openOk, closeOk, stat: stat.slice(0, 70), hasBtn: !!rb,
+      synOk, synBoundOk, expOk, sumOk, hybOk, hybBothN, rankOk, compOk, metricsOk, abSpOk, abHyOk, evUiOk, evSetOk, evOutOk, evRunOk, evAbOk, evMdOk,
+      evFamOk, evGoldOk, synGainOk, evNoLossOk,
+      evDbg: 'set=' + evSet.length + ' fam=' + JSON.stringify(evFams) + ' syn=' + (synHit ? JSON.stringify(synHit) : '-') + ' run n=' + (evRun ? evRun.n : -1) + ' hit=' + (evRun ? evRun.hit.toFixed(2) : '-') + ' mrr=' + (evRun ? evRun.mrr.toFixed(2) : '-') + ' ndcg=' + (evRun ? evRun.ndcg.toFixed(2) : '-'),
       lv: lpHit && lpHit.grade ? lpHit.grade.lv : '-', rounds: lpHit ? lpHit.rounds.length : 0,
       dbg: 'bad[lv=' + (lpBad && lpBad.grade ? lpBad.grade.lv : '-') + ' r=' + (lpBad ? lpBad.rounds.length : -1) + ' ms=' + (lpBad ? lpBad.ms : 'n') + ' best=' + (lpBad ? lpBad.bestIt : -1) + '] hit[lv=' + (lpHit && lpHit.grade ? lpHit.grade.lv : '-') + ' n=' + (lpHit ? lpHit.hits.length : -1) + ' ms=' + (lpHit ? lpHit.ms : 'n') + ' r=' + (lpHit ? lpHit.rounds.length : -1) + ']' };
   });
@@ -682,6 +781,14 @@ const MOCK = `
     console.log('RAG 闭环细节:', rag.dbg);
     if (!rag.tokOk || !rag.srcOk || !rag.hitOk || !rag.mono || rag.none !== 0 || !rag.statOk || !rag.outOk || rag.cites < 1 || !rag.citeOk || !rag.moreOk || !rag.openOk || !rag.closeOk) errors.push('rag qa broken');
     if (!rag.routeOk || !rag.gradeOk || !rag.rrfOk || !rag.loopOk || !rag.verifyOk || !rag.traceOk || !rag.refuseOk) errors.push('rag agentic loop broken');
+    console.log('RAG 混合检索: 术语扩展=', rag.synOk, '| 词边界=', rag.synBoundOk, '| 扩展路召回=', rag.expOk, '| 分数融合=', rag.sumOk, '| 双路命中', rag.hybBothN, '条 | 一级精排=', rag.rankOk, '| 上下文压缩=', rag.compOk, '| 指标计算=', rag.metricsOk);
+    console.log('RAG A/B 开关: 切单路=', rag.abSpOk, '| 切混合=', rag.abHyOk);
+    console.log('RAG 评测台: 面板=', rag.evUiOk, '| 出题=', rag.evSetOk, '| 分族=', rag.evFamOk, '| 答案集=', rag.evGoldOk, '| 语义增益=', rag.synGainOk, '| 跑批=', rag.evRunOk, '| 结果表=', rag.evOutOk, '| A/B=', rag.evAbOk, '| 不劣化=', rag.evNoLossOk, '| 报告=', rag.evMdOk);
+    console.log('RAG 评测台细节:', rag.evDbg);
+    if (!rag.synOk || !rag.synBoundOk || !rag.expOk || !rag.sumOk || !rag.hybOk || !rag.rankOk || !rag.compOk || !rag.metricsOk) errors.push('rag hybrid retrieval broken');
+    if (!rag.abSpOk || !rag.abHyOk) errors.push('rag ab switch broken');
+    if (!rag.evUiOk || !rag.evSetOk || !rag.evRunOk || !rag.evOutOk || !rag.evAbOk || !rag.evMdOk) errors.push('rag eval bench broken');
+    if (!rag.evFamOk || !rag.evGoldOk || !rag.synGainOk || !rag.evNoLossOk) errors.push('rag eval quality broken');
   }
 
   // 简历档案（多份 + 意向 + Mock 解析）与投递画像（Mock 生成）
