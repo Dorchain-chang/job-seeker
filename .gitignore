@@ -16,6 +16,9 @@ src/canonical_*.json
 # 冒烟临时文件
 tests/tmp_*
 
+# 本地冒烟输出日志（运行产物，不入库）
+smoke.log
+
 # 邮件桥本地凭据与运行时文件（授权码绝不入库）
 scripts/mail_config.json
 scripts/mail_seen.json
