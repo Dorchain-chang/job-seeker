@@ -178,7 +178,9 @@ PUBLIC_ADAPTER = r"""
     return out;
   }
   function download(obj,name){
-    var blob=new Blob([JSON.stringify(obj)],{type:'application/json'});
+    var s=JSON.stringify(obj);
+    if(window.saveWrite){window.saveWrite(name,s,'application/json');return}
+    var blob=new Blob([s],{type:'application/json'});
     var a=document.createElement('a');
     a.href=URL.createObjectURL(blob);a.download=name;
     document.body.appendChild(a);a.click();
@@ -234,14 +236,14 @@ PUBLIC_ADAPTER = r"""
     mask.id='qcAskMask';
     mask.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:20px;transform:translateZ(0)';
     var card=document.createElement('div');
-    card.style.cssText='background:#fff;border-radius:3px;border-top:4px solid #0b5cff;max-width:440px;width:100%;padding:22px 22px 18px;box-shadow:0 12px 40px rgba(15,23,42,.28)';
-    card.innerHTML='<div style="font-size:16px;font-weight:800;margin-bottom:6px">欢迎使用 Job Seeker</div>'
-      +'<div style="font-size:13px;color:#64748b;line-height:1.7;margin-bottom:16px">这是一份可以自己用的求职工作台。你的数据全部保存在<b>你自己浏览器</b>里，不会上传到任何服务器。<br>先选一个起点：</div>'
-      +'<button type="button" id="qcPickSeed" style="display:block;width:100%;text-align:left;border:1px solid #b9cdfd;background:#e8efff;border-radius:0;padding:12px 14px;cursor:pointer;font-family:inherit;margin-bottom:10px">'
-      +'<b style="font-size:14px;color:#0b5cff">载入岗位库</b><span style="font-size:12px;color:#64748b;display:block;margin-top:3px">内置 '+seedCnt+' 条牛客校招岗位，按截止日期跟进</span></button>'
-      +'<button type="button" id="qcPickEmpty" style="display:block;width:100%;text-align:left;border:1px solid #d7dee8;background:#fff;border-radius:0;padding:12px 14px;cursor:pointer;font-family:inherit">'
-      +'<b style="font-size:14px;color:#0f172a">从空白开始</b><span style="font-size:12px;color:#64748b;display:block;margin-top:3px">岗位库留空，只记我自己的投递记录</span></button>'
-      +'<div style="font-size:11.5px;color:#94a3b8;margin-top:12px;line-height:1.6">之后可以在侧栏底部「重置为最新快照」里重新载入岗位库。</div>';
+    card.style.cssText='background:var(--card);border:1px solid var(--rule);border-top:4px solid var(--pri);border-radius:var(--radius);max-width:440px;width:100%;padding:22px 22px 18px;box-shadow:var(--plate)';
+    card.innerHTML='<div style="font-size:var(--fs-h3);font-weight:800;margin-bottom:6px">欢迎使用 Job Seeker</div>'
+      +'<div style="font-size:var(--fs-body);color:var(--sub);line-height:1.7;margin-bottom:16px">这是一份可以自己用的求职工作台。你的数据全部保存在<b>你自己浏览器</b>里，不会上传到任何服务器。<br>先选一个起点：</div>'
+      +'<button type="button" id="qcPickSeed" style="display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--pri-soft);border-radius:var(--radius);padding:12px 14px;cursor:pointer;font-family:inherit;margin-bottom:10px">'
+      +'<b style="font-size:var(--fs-body-lg);color:var(--pri)">载入岗位库</b><span style="font-size:var(--fs-meta);color:var(--sub);display:block;margin-top:3px">内置 '+seedCnt+' 条牛客校招岗位，按截止日期跟进</span></button>'
+      +'<button type="button" id="qcPickEmpty" style="display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--field);border-radius:var(--radius);padding:12px 14px;cursor:pointer;font-family:inherit">'
+      +'<b style="font-size:var(--fs-body-lg);color:var(--txt)">从空白开始</b><span style="font-size:var(--fs-meta);color:var(--sub);display:block;margin-top:3px">岗位库留空，只记我自己的投递记录</span></button>'
+      +'<div style="font-size:var(--fs-cap);color:var(--muted);margin-top:12px;line-height:1.6">之后可以在侧栏底部「重置为最新快照」里重新载入岗位库。</div>';
     mask.appendChild(card);
     // 弹层必须追加到 body 末尾盖住整页；侧栏底部操作区由 mountOps 注入 #snOps。
     document.body.appendChild(mask);

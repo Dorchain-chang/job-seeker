@@ -183,19 +183,19 @@ NAV_SINGLE = """
 
 HEATMAP_HTML = """
 <section id="hmSec">
-  <h2 style="color:var(--green)"><svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>投递热力图 · 每日足迹</h2>
+  <h2 style="color:var(--green)"><svg viewBox="0 0 24 24" fill="none" style="stroke:var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>投递热力图 · 每日足迹</h2>
   <div class="hmSum" id="hmSum"></div>
   <div class="hmWrap"><div class="hmGrid" id="hmGrid"></div></div>
   <div class="hmLegend">少
-    <span class="sq" style="background:#ebedf0"></span><span class="sq" style="background:#9be9a8"></span><span class="sq" style="background:#40c463"></span><span class="sq" style="background:#30a14e"></span><span class="sq" style="background:#216e39"></span>多
-    <span style="margin-left:10px;display:inline-flex;align-items:center;gap:5px"><span class="sq" style="background:#fff;box-shadow:inset 0 0 0 2px #fff,0 0 0 2px #d97706"></span>有笔试 / 面试 / Offer 节点</span>
+    <span class="sq" style="background:var(--hm-0)"></span><span class="sq" style="background:var(--hm-1)"></span><span class="sq" style="background:var(--hm-2)"></span><span class="sq" style="background:var(--hm-3)"></span><span class="sq" style="background:var(--hm-4)"></span>多
+    <span style="margin-left:10px;display:inline-flex;align-items:center;gap:5px"><span class="sq" style="background:var(--card);box-shadow:inset 0 0 0 2px var(--card),0 0 0 2px var(--hm-ev)"></span>有笔试 / 面试 / Offer 节点</span>
     <span style="margin-left:10px">点击任意格子查看当天明细</span>
   </div>
 </section>
 
 <div id="hmModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99;align-items:center;justify-content:center;padding:20px">
-  <div style="background:#fff;border-radius:14px;max-width:560px;width:100%;max-height:70vh;overflow:auto;padding:18px;box-shadow:0 10px 30px rgba(15,23,42,.2)">
-    <b id="hmDate" style="font-size:15px"></b>
+  <div style="background:var(--card);border:1px solid var(--rule);border-radius:var(--radius);max-width:560px;width:100%;max-height:70vh;overflow:auto;padding:18px;box-shadow:var(--plate)">
+    <b id="hmDate" style="font-size:var(--fs-h2)"></b>
     <div id="hmDetail" style="margin-top:8px"></div>
     <div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn btn-gray btn-sm" id="hmClose">关闭</button></div>
   </div>
@@ -207,22 +207,22 @@ nav.tabbar .tab{cursor:pointer;font-family:inherit}
 .view{display:none}
 .view.active{display:block}
 /* ---- 投递热力图 ---- */
-.hmSum{font-size:12px;color:var(--sub);margin-bottom:10px}
+.hmSum{font-size:var(--fs-meta);color:var(--sub);margin-bottom:10px}
 .hmWrap{overflow-x:auto;padding-bottom:2px}
 .hmGrid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,12px);gap:3px;width:max-content}
-.hm-cell{width:12px;height:12px;border-radius:3px;background:#ebedf0;cursor:pointer}
+.hm-cell{width:12px;height:12px;border-radius:var(--radius);background:var(--hm-0);cursor:pointer}
 .hm-cell:hover{outline:1.5px solid var(--pri);outline-offset:0}
-.hm-cell.l1{background:#9be9a8}
-.hm-cell.l2{background:#40c463}
-.hm-cell.l3{background:#30a14e}
-.hm-cell.l4{background:#216e39}
-.hm-cell.ev{box-shadow:inset 0 0 0 2px #fff,0 0 0 2px #d97706}
-.hmLegend{display:flex;align-items:center;gap:5px;margin-top:10px;font-size:11px;color:var(--sub);flex-wrap:wrap}
-.hmLegend .sq{width:11px;height:11px;border-radius:3px;display:inline-block}
-.hmrow{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+.hm-cell.l1{background:var(--hm-1)}
+.hm-cell.l2{background:var(--hm-2)}
+.hm-cell.l3{background:var(--hm-3)}
+.hm-cell.l4{background:var(--hm-4)}
+.hm-cell.ev{box-shadow:inset 0 0 0 2px var(--card),0 0 0 2px var(--hm-ev)}
+.hmLegend{display:flex;align-items:center;gap:5px;margin-top:10px;font-size:var(--fs-tag);color:var(--sub);flex-wrap:wrap}
+.hmLegend .sq{width:11px;height:11px;border-radius:var(--radius);display:inline-block}
+.hmrow{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:var(--fs-body);flex-wrap:wrap}
 .hmrow:last-child{border-bottom:0}
-.hmrow b{font-size:13px}
-.hmrow .hm-sub{color:var(--sub);font-size:12px}
+.hmrow b{font-size:var(--fs-body)}
+.hmrow .hm-sub{color:var(--sub);font-size:var(--fs-meta)}
 @media (max-width:768px){.hm-cell{width:10px;height:10px}.hmGrid{grid-template-rows:repeat(7,10px);gap:2px}}
 """
 
@@ -292,8 +292,10 @@ def extract(html):
     seg = re.sub(r'^<div class="banner" id="offBanner">.*?</div>\s*', '', seg, flags=re.S)
     assert seg.endswith('</div>'), 'body should end with wrap close'
     seg = seg[: seg.rindex('</div>')]
-    m = re.search(r'<script>(.*?)</script>', html, re.S)
-    return hero, seg, m.group(1)
+    # 取**最后一个** <script>：<head> 里还有首屏防闪烁脚本（HEAD_BOOT_JS），主脚本在 body 末尾
+    ms = re.findall(r'<script>(.*?)</script>', html, re.S)
+    assert ms, 'no inline script found'
+    return hero, seg, ms[-1]
 
 
 def prefix_ids(text, mod, is_js):
@@ -392,6 +394,7 @@ function goOffline(){offline=true;setSync('off');$('offBanner').style.display='b
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>{head}</script>
 <title>Job Seeker · 秋招求职工作台</title>
 <link rel="icon" href="{favicon}">
 <style>{css}{css_extra}</style>
@@ -408,7 +411,7 @@ function goOffline(){offline=true;setSync('off');$('offBanner').style.display='b
 </body>
 </html>
 """.format(css=bp.CSS, css_extra=CSS_EXTRA, favicon=bp.FAVICON_DATA, nav=NAV_SINGLE, views="\n".join(views),
-           lnk=bp.LNKMODAL_HTML, intel=bp.INTELMODAL_HTML, js=js_all)
+           lnk=bp.LNKMODAL_HTML, intel=bp.INTELMODAL_HTML, js=js_all, head=bp.HEAD_BOOT_JS)
 
     out1 = HERE.parent / "dist" / "00-总览台.html"
     out1.parent.mkdir(exist_ok=True)

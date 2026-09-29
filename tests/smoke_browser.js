@@ -421,6 +421,41 @@ const MOCK = `
     return { ok: true, open, n: sws.length, pri, grad: grad.trim(), saved, rgbVar };
   });
   console.log('主题面板: 打开=', theme.open, '| 预设数=', theme.n, '| 切预设后 --pri=', theme.pri, '| --grad=', theme.grad, '| 持久化=', theme.saved, '| --pri-rgb=', theme.rgbVar);
+
+  // 底色方案（5 套，含纯黑）+ 保存位置设置
+  const scheme = await page.evaluate(() => {
+    const pop = document.getElementById('themepop');
+    if (!pop) return { ok: false };
+    const schs = Array.from(pop.querySelectorAll('.sch'));
+    const mods = Array.from(pop.querySelectorAll('.modech'));
+    const ids = schs.map((x) => x.getAttribute('data-s'));
+    const v = (k) => getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+    window.applyScheme('black', false);
+    const darkBg = v('--bg'), darkTxt = v('--txt'), isDark = window.themeIsDark();
+    const dt = document.documentElement.getAttribute('data-theme');
+    window.applyScheme('sepia', false);
+    const sepiaBg = v('--bg');
+    window.applyScheme('light', false);
+    const lightBg = v('--bg'), backTxt = v('--txt');
+    window.applyScheme('dark', false);
+    return {
+      ok: true, n: schs.length, m: mods.length, ids, darkBg, darkTxt, isDark, dt, sepiaBg, lightBg, backTxt,
+      pick: !!document.getElementById('savePick'),
+      pathTxt: (document.getElementById('savePath') || {}).textContent || '',
+      sup: typeof window.saveSupported === 'function' ? window.saveSupported() : 'none'
+    };
+  });
+  const schemeOk = scheme.ok && scheme.n === 5 && scheme.m === 2
+    && scheme.ids.indexOf('black') >= 0 && scheme.ids.indexOf('paper') >= 0 && scheme.ids.indexOf('sepia') >= 0
+    && scheme.isDark === true && scheme.dt === 'black'
+    && scheme.darkBg === '#000000' && scheme.darkTxt === '#ffffff'
+    && scheme.sepiaBg !== scheme.lightBg && scheme.lightBg !== '#000000' && scheme.backTxt !== '#ffffff';
+  const saveUiOk = scheme.ok && scheme.pick && !!scheme.pathTxt && typeof scheme.sup === 'boolean';
+  console.log('底色方案: 格数=', scheme.n, '| 亮暗快捷=', scheme.m, '| 纯黑底/字=', scheme.darkBg, '/', scheme.darkTxt, '| themeIsDark=', scheme.isDark);
+  console.log('  暖纸 --bg=', scheme.sepiaBg, '| 钢灰 --bg=', scheme.lightBg, '| 回切后 --txt=', scheme.backTxt);
+  console.log('保存位置: 按钮=', scheme.pick, '| 文案=', JSON.stringify(scheme.pathTxt), '| 目录授权可用=', scheme.sup);
+  if (!schemeOk) errors.push('theme scheme broken');
+  if (!saveUiOk) errors.push('save dir setting broken');
   if (!theme.ok || !theme.open || theme.n < 7 || theme.grad !== theme.pri) errors.push('theme picker broken');
 
   // Agent 高级自定义（AGTUNE_JS）：渲染 / 人设 / 预设 / 参数合并 / System 组装 / 备份

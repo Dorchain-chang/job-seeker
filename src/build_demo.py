@@ -82,8 +82,8 @@ MOCK_ADAPTER = r"""
     document.addEventListener('DOMContentLoaded',function(){
       var b=document.createElement('div');
       // 用普通文档流，不要 position:fixed —— 会盖住页面顶部的 sticky 导航
-      b.style.cssText='position:relative;z-index:99;background:#fef3c7;color:#92400e;text-align:center;padding:8px 12px;font-size:13px;border-bottom:1px solid #fbbf24;line-height:1.5';
-      b.innerHTML='GitHub Pages 演示模式：数据只存在当前浏览器的 localStorage，不会写入资料库。<a href="javascript:void(0)" id="demoWipe" style="color:#b45309;text-decoration:underline">清空演示数据</a>';
+      b.style.cssText='position:relative;z-index:99;background:var(--orange-soft);color:var(--orange);text-align:center;padding:8px 12px;font-size:var(--fs-body);border-bottom:1px solid var(--orange-line);line-height:1.5';
+      b.innerHTML='GitHub Pages 演示模式：数据只存在当前浏览器的 localStorage，不会写入资料库。<a href="javascript:void(0)" id="demoWipe" style="color:var(--orange);text-decoration:underline">清空演示数据</a>';
       document.body.insertBefore(b,document.body.firstChild);
       var wipe=document.getElementById('demoWipe');
       if(wipe){wipe.onclick=function(){ if(confirm('清空演示数据？会恢复初始示例岗位。')){localStorage.clear();location.reload();} };}

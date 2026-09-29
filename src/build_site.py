@@ -151,7 +151,9 @@ SITE_ADAPTER = r"""
     return out;
   }
   function download(obj,name){
-    var blob=new Blob([JSON.stringify(obj)],{type:'application/json'});
+    var s=JSON.stringify(obj);
+    if(window.saveWrite){window.saveWrite(name,s,'application/json');return}
+    var blob=new Blob([s],{type:'application/json'});
     var a=document.createElement('a');
     a.href=URL.createObjectURL(blob);a.download=name;
     document.body.appendChild(a);a.click();
