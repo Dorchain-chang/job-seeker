@@ -15,6 +15,23 @@ CAREER_KW = ["算法", "人工智能", "AI", "大模型", "机器学习", "深�
              "计算机", "信息技术", "网络安全", "信息安全", "测试", "前端", "后端", "运维", "嵌入式", "研发", "通信"]
 
 
+def urlopen_resilient(req, timeout=15, tries=3):
+    """Windows 注册表里的 127.0.0.1:7890 代理并非常开 → 先直连，(2026-09-29)。
+    直连偶发 WinError 10061（本机网络瞬时抖动）→ 重试后再退回系统代理。"""
+    direct = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    err = None
+    for i in range(tries):
+        try:
+            return direct.open(req, timeout=timeout)
+        except (urllib.error.URLError, OSError) as e:  # noqa: PERF203
+            err = e
+            time.sleep(0.6 * (i + 1))
+    try:
+        return urllib.request.urlopen(req, timeout=timeout)
+    except (urllib.error.URLError, OSError):
+        raise err
+
+
 def fetch_nowcoder():
     def fetch_page(page):
         url = f"https://www.nowcoder.com/np-api/u/school-schedule/list-card?_={int(time.time()*1000)}"
@@ -25,7 +42,7 @@ def fetch_nowcoder():
             "Content-Type": "application/x-www-form-urlencoded",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
             "Referer": "https://www.nowcoder.com/jobs/school/schedule"})
-        with urllib.request.urlopen(req, timeout=15) as r:
+        with urlopen_resilient(req, timeout=15) as r:
             return json.loads(r.read().decode())
 
     rows, page, total_page = [], 1, 1
@@ -117,6 +134,7 @@ def main():
             seen.add(m["公司"]["text"])
             matched.append(m)
     print(f"matched (city+career): {len(matched)}")
+    print("matched list:", "、".join(f'{m["公司"]["text"]}({str(m.get("城市", {}).get("text") or "-")})' for m in matched))
 
     # dedupe against existing records
     q = db_script("query_database_record.py", ["--database-id", INTERN_DB, "--page-size", "200", "--token-stdin"], token)

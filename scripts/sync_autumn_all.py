@@ -26,6 +26,17 @@ GRACE_MS = 1 * 24 * 3600 * 1000  # 放宽 1 天
 LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sync_autumn_last.log")
 _LOG_LINES = []
 
+# 本机系统代理(127.0.0.1:7890)常年不在线，urllib 会从 Windows 注册表读到它并直接
+# 抛 WinError 10061；牛客为国内站点，强制直连更稳。
+urllib.request.getproxies = lambda: {}
+_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def no_proxy_env():
+    """顺带清掉子进程可能继承的代理环境变量。"""
+    for k in ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "all_proxy"):
+        os.environ.pop(k, None)
+
 
 def log(*args):
     """print + UTF-8 日志文件（避免 PowerShell 重定向转码乱码）。"""
@@ -56,7 +67,7 @@ def fetch_nowcoder():
                 "Referer": "https://www.nowcoder.com/jobs/school/schedule",
             },
         )
-        with urllib.request.urlopen(req, timeout=20) as r:
+        with _OPENER.open(req, timeout=20) as r:
             return json.loads(r.read().decode())
 
     rows, page, total_page = [], 1, 1
@@ -189,6 +200,7 @@ def backfill_ids(token, missing_id, picked_map):
 
 
 def main():
+    no_proxy_env()
     token = sys.stdin.readline().strip()
     if not token:
         log("NO TOKEN")
