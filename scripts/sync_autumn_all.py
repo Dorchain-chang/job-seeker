@@ -134,7 +134,9 @@ def build(row):
 
 def db_call(name, args, token, payload=None):
     cmd = [PY, DB_DIR + "\\" + name] + args
-    inp = (token + "\n" + (payload or "")).encode()
+    # 库脚本走沙箱网关鉴权，不需要 token；--stdin 时整读 stdin 当 JSON，
+    # 若把 token 行拼在前面会导致「输入 JSON 为空或格式非法」。只传 payload。
+    inp = ((payload or "") + "\n").encode()
     r = subprocess.run(cmd, input=inp, capture_output=True)
     out = r.stdout.decode("utf-8", "replace").strip()
     first = out.splitlines()[0].strip() if out else ""
