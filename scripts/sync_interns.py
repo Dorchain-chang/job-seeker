@@ -109,8 +109,11 @@ def match(row):
 
 
 def db_script(name, args, token, stdin_payload=None):
+    """注意：batch_add_database_records.py 的 --stdin 是「整个 stdin 必须是一段 JSON」，
+    前面拼 token 行会让它 json.loads 失败并报「输入 JSON 为空或格式非法」（2026-10-08 首次
+    出现 to add>0 才暴露，此前多轮都是 0 新增所以一直没触发）。故带 payload 时只发 payload。"""
     cmd = [PY, DB_DIR + "\\" + name] + args
-    inp = (token + "\n" + (stdin_payload or "")).encode() if stdin_payload is not None else (token + "\n").encode()
+    inp = stdin_payload.encode() if stdin_payload is not None else (token + "\n").encode()
     r = subprocess.run(cmd, input=inp, capture_output=True)
     out = r.stdout.decode("utf-8", "replace").strip()
     first = out.splitlines()[0].strip() if out else ""
