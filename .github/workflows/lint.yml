@@ -205,7 +205,10 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           npm install --no-save playwright-core@1.63.0
-          npx playwright install --with-deps chromium
+          # 必须锁同一版本：裸 `npx playwright install` 会解析 registry 上的 latest
+          # （1.64.0），下载的是它那版 chromium revision，与 playwright-core@1.63.0
+          # 期望的 revision 不一致 → 冒烟 launch 抛错、进程退出码 2（2026-10-08 起连红）。
+          npx --yes playwright@1.63.0 install --with-deps chromium
 
       - name: Browser smoke test
         run: |
