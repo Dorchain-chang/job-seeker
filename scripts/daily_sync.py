@@ -29,6 +29,10 @@ import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
+
+import intern_source as isrc  # noqa: E402  实习源（与 sync_interns.py 共用同一份口径）
+
 SEED_PATH = os.path.join(ROOT, "src", "seed", "seed.json")
 PUBLIC_SEED_PATH = os.path.join(ROOT, "src", "seed", "seed.public.json")
 LOG_PATH = os.path.join(HERE, "daily_sync_last.log")
@@ -40,12 +44,6 @@ GRACE_MS = 1 * 24 * 3600 * 1000          # 截止日期放宽 1 天
 SOURCE = "牛客校招日程"
 SAMPLE_SOURCE = "示例预置"
 DEFAULT_MAX_NEW = 60
-
-TARGET_CITIES = ["成都", "北京", "天津"]
-REMOTE_KW = ["远程", "线上", "居家", "全国", "不限", "多地"]
-CAREER_KW = ["算法", "人工智能", "AI", "大模型", "机器学习", "深度学习", "数据", "软件", "开发",
-             "计算机", "信息技术", "网络安全", "信息安全", "测试", "前端", "后端", "运维",
-             "嵌入式", "研发", "通信"]
 
 _LINES = []
 
@@ -165,46 +163,11 @@ def build_job(row):
     return rec
 
 
-def build_intern(row):
-    """只收真实习批次（batchName 含「实习」），并在目标城市/远程范围内。"""
-    batch = str(row.get("batchName") or "")
-    if "实习" not in batch:
-        return None
-    cities = [c for c in (row.get("cityList") or []) if c]
-    hit_cities = [c for c in cities if any(str(c).find(t) >= 0 for t in TARGET_CITIES)]
-    remote_hit = [c for c in cities if any(str(c).find(t) >= 0 for t in REMOTE_KW)]
-    broad = (not cities) or bool(remote_hit)
-    if not (hit_cities or broad):
-        return None
-    name = _clean(row.get("name"))
-    if not name:
-        return None
-    place = "、".join(hit_cities) if hit_cities else ("、".join(remote_hit) if remote_hit else "不限城市/远程")
-    careers = row.get("careerNameList") or []
-    hit_careers = [c for c in careers if any(k.lower() in str(c).lower() for k in CAREER_KW)]
-    rec = {
-        "公司": name,
-        "岗位名称": ("、".join(str(c) for c in hit_careers[:6])
-                  or "、".join(str(c) for c in careers[:3]) or "实习")[:60],
-        "工作地点": place,
-        "岗位要求": batch or "实习",
-        "投递状态": "待投递",
-        "来源": SOURCE,
-        "备注": ("技术岗 · " if hit_careers else "非技术岗 · ") + (batch + " · " if batch else "")
-                + (_clean(row.get("companyEvaluation"))[:60] or "牛客同步"),
-    }
-    if row.get("companyId"):
-        rec["牛客ID"] = str(row["companyId"])
-    link = row.get("customWangshenLink") or row.get("sourceInformation") or ""
-    if link:
-        rec["投递链接"] = [{"link": link, "text": "投递入口"}]
-    begin, end = ts2iso(row.get("wangshenBeginDate")), ts2iso(row.get("wangshenEndDate"))
-    if begin:
-        rec["网申开始"] = begin
-    if end:
-        rec["截止日期"] = end
-    rec["record_id"] = new_id()
-    return rec
+def build_interns():
+    """实习统一走 intern_source（牛客实习岗位列表），与 sync_interns.py 同一份口径。
+    返回值：(seed 行列表, 统计)。"""
+    flat, stats = isrc.collect(max_new=0)
+    return [isrc.to_seed(r, new_id()) for r in flat], stats
 
 
 # ------------------------------------------------- 去重键（必须与站点端 keyOf 一致）
@@ -320,25 +283,32 @@ def main():
 
     # 2) 转换 + 窗口过滤
     now_ms = int(time.time() * 1000)
-    jobs_raw, interns_raw = [], []
-    seen_job_name = set()
+    jobs_raw, seen_job_name = [], set()
     for r in rows:
-        if in_window(r, now_ms):
-            rec = build_job(r)
-            if rec and rec["公司"] not in seen_job_name:
-                seen_job_name.add(rec["公司"])
-                jobs_raw.append(rec)
-        rec_i = build_intern(r)
-        if rec_i:
-            interns_raw.append(rec_i)
+        if not in_window(r, now_ms):
+            continue
+        rec = build_job(r)
+        if rec and rec["公司"] not in seen_job_name:
+            seen_job_name.add(rec["公司"])
+            jobs_raw.append(rec)
+
+    # 实习走独立源（牛客实习岗位列表）。抓失败不拖垮秋招那半条流程。
+    try:
+        interns_raw, istats = build_interns()
+        log("intern pool: %d cards / %d pages -> %d unique jobs (city-merged %d)" % (
+            istats["rows"], istats["total_page"], istats["kept"], istats["city_merged"]))
+    except Exception as e:          # noqa: BLE001
+        interns_raw = []
+        log("INTERN FETCH FAIL: %s" % str(e)[:200])
     log("candidates: 秋招 %d / 实习 %d" % (len(jobs_raw), len(interns_raw)))
 
     # 3) 合并
     seed = load_seed()
     jobs_before, interns_before = len(seed.get("jobs") or []), len(seed.get("interns") or [])
     jobs_after, jobs_added, jobs_dup = merge_table(seed.get("jobs") or [], jobs_raw, key_job, args.max_new)
+    # 实习不限量：源侧已按城市/在窗筛过（约 150 条），"全力"就是全收
     interns_after, interns_added, interns_dup = merge_table(
-        seed.get("interns") or [], interns_raw, key_intern, args.max_new)
+        seed.get("interns") or [], interns_raw, key_intern, 0)
 
     log("秋招: %d -> %d（新增 %d，重复跳过 %d）" % (jobs_before, len(jobs_after), len(jobs_added), jobs_dup))
     log("实习: %d -> %d（新增 %d，重复跳过 %d）" % (

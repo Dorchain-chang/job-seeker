@@ -16,7 +16,9 @@ function buildMock() {
   const careers = ['人工智能/算法', '后端开发', '前端开发', '数据', '测试'];
   const batches = ['27秋招', '27暑期实习', '其他'];
   for (let i = 0; i < 620; i++) {
-    const d = new Date(2026, 8, 20 + (i % 40));
+    // 截止日期必须相对「今天」生成：写死日期会让推荐池随时间必然清空
+    // （2026-11-08 实测：原先写死的 2026-09-18~10-17 全部过期 → reco 0 条、CI 变红）
+    const d = new Date(Date.now() + (i % 40) * 86400000);
     jobs.push({
       record_id: 'job' + i,
       公司: '测试公司' + i,
@@ -58,7 +60,7 @@ function buildMock() {
       岗位要求: '27届日常实习',
       投递状态: '待投递',
       网申开始: '2026-09-05T00:00:00Z',
-      截止日期: new Date(2026, 8, 18 + (i % 30)).toISOString(),
+      截止日期: new Date(Date.now() + (i % 30) * 86400000).toISOString(),
       投递链接: [{ text: '投递入口', link: 'https://example.com/intern' + i }],
       来源: '牛客校招日程',
       备注: '牛客同步',

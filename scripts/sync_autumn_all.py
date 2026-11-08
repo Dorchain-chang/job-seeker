@@ -147,7 +147,13 @@ def db_call(name, args, token, payload=None):
 
 
 def existing_companies(token):
-    names, missing_id, cursor = set(), {}, None
+    """返回 (公司名集合, 缺牛客ID的记录, 已有牛客ID集合)。
+
+    牛客ID 必须一起收：同一家公司换个名字（全称/简称）再出现时，只按公司名去重会
+    重复插一条，而站点按牛客ID 合并 → 页面条数少于快照条数，冒烟/CI 判为失败
+    （2026-11-08 实际发生：珠海万达、安徽华恒各重复一条）。
+    """
+    names, missing_id, ids, cursor = set(), {}, set(), None
     while True:
         args = ["--database-id", DB_ID, "--page-size", "100", "--fields", '["公司","牛客ID"]', "--token-stdin"]
         if cursor:
@@ -160,20 +166,22 @@ def existing_companies(token):
             v = rec.get("公司")
             if isinstance(v, dict):
                 v = v.get("text")
+            nid = rec.get("牛客ID")
+            if isinstance(nid, dict):
+                nid = nid.get("text")
+            if nid:
+                ids.add(str(nid).strip())
             if not v:
                 continue
             name = str(v).strip()
             names.add(name)
-            nid = rec.get("牛客ID")
-            if isinstance(nid, dict):
-                nid = nid.get("text")
             if rid and not nid:
                 missing_id[name] = rid
         if q.get("has_more") and q.get("next_cursor"):
             cursor = q["next_cursor"]
         else:
             break
-    return names, missing_id
+    return names, missing_id, ids
 
 
 def backfill_ids(token, missing_id, picked_map):
@@ -243,7 +251,7 @@ def main():
     picked.sort(key=lambda x: x[0] if x[0] else far)
 
     try:
-        existing, missing_id = existing_companies(token)
+        existing, missing_id, existing_ids = existing_companies(token)
     except Exception as e:
         log("QUERY FAIL:", str(e)[:200])
         return
@@ -259,7 +267,13 @@ def main():
     backfilled, backfill_failed = backfill_ids(token, missing_id, picked_map)
     log("BACKFILL OK: %d%s" % (backfilled, (" failed: " + "、".join(backfill_failed)) if backfill_failed else ""))
 
-    todo = [rec for _, rec in picked if rec["公司"]["text"] not in existing][:MAX_NEW]
+    def _id_of(rec):
+        v = rec.get("牛客ID")
+        return str((v or {}).get("text") if isinstance(v, dict) else (v or "")).strip()
+
+    todo = [rec for _, rec in picked
+            if rec["公司"]["text"] not in existing
+            and not (_id_of(rec) and _id_of(rec) in existing_ids)][:MAX_NEW]
     log("to add: %d" % len(todo))
     if not todo:
         log("NOTHING TO ADD")
