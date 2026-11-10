@@ -958,7 +958,8 @@ const MOCK = `
     const jdOk = (window.mtJdGet(rec0) || '').indexOf('PyTorch') >= 0;
     card0.querySelector('.jmatch').click();
     await sleep(40);
-    const badge0 = !!row0 && row0.textContent.indexOf('分') >= 0;
+    const ring0 = card0.querySelector('.jring-wrap');
+    const badge0 = !!ring0 && /\d/.test(ring0.textContent);
     const stored0 = window.mtGet(rec0);
     const storedOk = !!stored0 && typeof stored0.score === 'number';
     // ③ 按匹配度排序：塞两条不同分数，校验降序（95 分应排最前）
@@ -972,7 +973,9 @@ const MOCK = `
       await sleep(60);
       const first = window.mtCardAt(0);
       const txt = (first && first.querySelector('.jmatchrow')) ? first.querySelector('.jmatchrow').textContent : '';
-      sortOk = !!first && first.__mtRec === rec1 && txt.indexOf('95 分') >= 0;
+      const ringF = first && first.querySelector('.jring-wrap');
+      const ringTxt = ringF ? ringF.textContent : '';
+      sortOk = !!first && first.__mtRec === rec1 && ringTxt.indexOf('95') >= 0;
     } else { sortOk = true; }
     // 还原
     if (sRes != null) localStorage.setItem('wb_resumes', sRes); else localStorage.removeItem('wb_resumes');

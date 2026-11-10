@@ -248,7 +248,7 @@ section>h2 .cnt{margin-left:auto;font-family:var(--mono);font-size:var(--fs-cap)
 .filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
 .filters input,.filters select{flex:1;min-width:120px;height:40px;border:1px solid var(--line);border-radius:0;padding:0 12px;background:var(--field);font-size:var(--fs-body-lg);font-family:inherit;transition:border-color .15s,box-shadow .15s}
 .cards{display:flex;flex-direction:column;gap:10px}
-.jcard,.acard{background:var(--field);border:1px solid var(--line);border-radius:var(--radius);padding:13px 15px;display:flex;flex-direction:column;gap:6px;transition:box-shadow .18s,transform .18s,border-color .18s}
+.jcard,.acard{background:var(--field);border:1px solid var(--line);border-radius:var(--radius);padding:13px 15px;display:flex;flex-direction:column;gap:6px;transition:box-shadow .18s,transform .18s,border-color .18s;position:relative}
 .jcard:hover,.acard:hover{border-color:var(--rule);background:var(--card-2)}
 .jcard.soe{border-color:var(--line);box-shadow:inset 4px 0 0 var(--red)}
 .jrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -268,6 +268,10 @@ section>h2 .cnt{margin-left:auto;font-family:var(--mono);font-size:var(--fs-cap)
 .jmatchrow .mgap{color:var(--red)}
 .jmatchrow .madv{color:var(--txt)}
 .jmatchrow a.mgo{color:var(--pri);text-decoration:underline;cursor:pointer}
+.jring-wrap{position:absolute;top:8px;right:10px;width:38px;height:38px;cursor:pointer;line-height:0;z-index:2;display:block}
+.jring-wrap:hover{filter:brightness(1.15)}
+.jring-wrap svg{display:block}
+.jcard.soe .jring-wrap,.jcard[style*="border-left"] .jring-wrap{top:10px;right:10px}
 /* ---- AI 扩展：面试复盘 / 批量打分 / 智能推荐 / 邮件 AI 解析 ---- */
 .rvrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .rvout{margin-top:12px;font-size:var(--fs-body);line-height:1.7;white-space:pre-wrap;border-top:1px solid var(--line);padding-top:10px;max-height:300px;overflow:auto}
@@ -1547,6 +1551,7 @@ function bindCardDelegate(box,kind){
     if(t.closest('.jsearch')){showIntel(fieldText(j,'公司'),nkId(j));return}
     if(t.closest('.jdel')){cardDelete(j,kind);return}
     if(t.closest('.jmark')){cardMarkApplied(j);return}
+    if(t.closest('.jring-wrap')){var jb=card.querySelector('.jmatch');if(jb)mtRun(j,jb,card);return}
     if((b=t.closest('.jmatch'))){mtRun(j,b,card);return}
     if(t.closest('[data-field="投递链接"]')){
       e.preventDefault();
@@ -2171,15 +2176,29 @@ function mtBrief(p){
   return L.join(MT_NL);
 }
 function mtEl(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+function mtRingColor(s){if(s==null)return'var(--line)';if(s>=80)return'var(--green)';if(s>=60)return'var(--orange)';return'var(--red)'}
+function mtRing(score){
+  var s=score==null?null:Math.max(0,Math.min(100,Math.round(score)));
+  var col=mtRingColor(s);
+  var R=15,C=2*Math.PI*R,off=s==null?C:C*(1-s/100);
+  var txt=s==null?'?':String(s);
+  return '<svg class="jring" viewBox="0 0 38 38" width="38" height="38" aria-label="匹配度">'+
+    '<circle cx="19" cy="19" r="15" fill="none" stroke="var(--line)" stroke-width="3" opacity="0.35"/>'+
+    '<circle cx="19" cy="19" r="15" fill="none" stroke="'+col+'" stroke-width="3.5" stroke-linecap="round" '+
+    'stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 19 19)"/>'+
+    '<text x="19" y="19" text-anchor="middle" dominant-baseline="central" font-size="15" font-weight="700" fill="var(--txt)">'+txt+'</text></svg>';
+}
 function mtBadgeCls(s){if(s==null)return'gray';if(s>=80)return'ok';if(s>=60)return'warn';return'gray'}
 function mtRenderRow(card,j){
   if(!card)return;
   var box=card.querySelector('.jmatchrow');if(!box)return;
   var btn=card.querySelector('.jmatch'),r=mtGet(j);
   if(btn&&!btn.disabled)btn.textContent=r?'重新打分':(mtJdText(j)?'匹配打分':'贴 JD 打分');
+  var ring=card.querySelector('.jring-wrap');
+  if(!ring){ring=document.createElement('span');ring.className='jring-wrap';card.appendChild(ring)}
+  ring.innerHTML=mtRing(r?r.score:null);
   box.innerHTML='';
   if(!r){if(mtJdFromField(j))box.appendChild(mtEl('span','mmeta','已用「岗位要求」字段当 JD，可直接打分'));return}
-  box.appendChild(mtEl('span','tag '+mtBadgeCls(r.score),r.score+' 分'));
   box.appendChild(mtEl('span','mmeta','用「'+(r.resumeName||'简历')+'」'+(r.intent?(' · '+r.intent):'')+(r.at?(' · '+r.at):'')));
   if(r.advice)box.appendChild(mtEl('span','madv','建议：'+r.advice));
   if(r.hits&&r.hits.length)box.appendChild(mtEl('span','mhit','匹配：'+r.hits.slice(0,3).join('；')));
