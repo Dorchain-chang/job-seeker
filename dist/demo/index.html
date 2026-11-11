@@ -1235,6 +1235,7 @@ nav.tabbar .tab{cursor:pointer;font-family:inherit}
   <div class="aabar">
     <code class="aacmd" id="aaCmd">双击 scripts/start_auto_apply.bat 启动本机服务 · 地址 http://127.0.0.1:8765</code>
     <button type="button" class="btn btn-ghost btn-sm" id="aaSelfTest">跑一次自测</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="aaRetry">连接 / 重连服务</button>
   </div>
   <div class="aaform">
     <div><label class="fl">岗位链接</label><input id="aaUrl" placeholder="https://www.nowcoder.com/jobs/detail/..."></div>
@@ -2108,6 +2109,20 @@ function aaConnect(){
     aaLog({t:Date.now(),msg:o.ok===false?('结束：'+o.msg):(o.dryRun?'演练完成，未提交':'任务完成'),kind:o.ok===false?'err':'ok'});
   });
 }
+function aaEnsure(){
+  if(AA_ES)return Promise.resolve(true);
+  return fetch(AA_BASE+'/api/health',{cache:'no-store'}).then(function(r){return r.json()}).then(function(h){
+    if(!h.ok)throw new Error('health');
+    aaConnect();
+    aaStatus('已连接 · '+AA_BASE,'ok');
+    aaChat('bot','本机服务已就绪。给我一个岗位链接，或点「跑一次自测」先体验完整流程。');
+    return true;
+  }).catch(function(){
+    aaStatus('服务未启动','bad');
+    aaChat('bot','没连上本机服务。双击 scripts/start_auto_apply.bat 启动，再点「连接 / 重连服务」。');
+    return false;
+  });
+}
 function aaPost(path,obj){
   return fetch(AA_BASE+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}).then(function(r){return r.json()});
 }
@@ -2128,16 +2143,19 @@ function aaStart(){
   var site=s?s.value:'nowcoder';
   var cfg={site:site,url:(u.value||'').trim(),dryRun:!d||d.checked,resume:aaResume()};
   if(!cfg.url&&site!=='mock'){aaChat('bot','先贴一个岗位链接，或选「内置模拟页」跑一次自测。');return}
-  if(site==='mock')cfg.url=AA_BASE+'/api/mock';
-  aaPost('/api/task',cfg).then(function(r){
-    if(!r.ok)aaChat('bot','没能启动：'+(r.msg||''));
-    else aaLog({t:Date.now(),msg:'任务已提交 · '+(cfg.dryRun?'演练模式':'真实投递'),kind:'act'});
-  }).catch(function(){aaChat('bot','连不上本机服务。请双击 scripts/start_auto_apply.bat 启动后再试。')});
+  aaEnsure().then(function(ok){
+    if(!ok)return;
+    if(site==='mock')cfg.url=AA_BASE+'/api/mock';
+    aaPost('/api/task',cfg).then(function(r){
+      if(!r.ok)aaChat('bot','没能启动：'+(r.msg||''));
+      else aaLog({t:Date.now(),msg:'任务已提交 · '+(cfg.dryRun?'演练模式':'真实投递'),kind:'act'});
+    }).catch(function(){aaChat('bot','连不上本机服务，请检查服务是否还在运行。')});
+  });
 }
-function aaStop(){aaPost('/api/stop',{}).catch(function(){})}
+function aaStop(){if(AA_ES)aaPost('/api/stop',{}).catch(function(){})}
 function aaSend(){
   var i=aaEl('aaChatIn');if(!i)return;var t=(i.value||'').trim();if(!t)return;i.value='';
-  aaChat('me',t);aaPost('/api/reply',{text:t}).catch(function(){});
+  aaChat('me',t);if(AA_ES)aaPost('/api/reply',{text:t}).catch(function(){});
   var m=t.match(/https?:\/\/[^\s]+/);
   if(m){var u=aaEl('aaUrl');if(u)u.value=m[0];aaChat('bot','已识别岗位链接，点「开始投递」我就接管浏览器。');return}
   if(/停止|取消|别投/.test(t)){aaStop();aaChat('bot','已发停止指令。');return}
@@ -2147,14 +2165,15 @@ function aaSend(){
   aaChat('bot','我可以：读岗位链接并自动投递、实时汇报每一步、遇到验证码喊你。也可以直接把链接发我。');
 }
 function aaBoot(){
-  if(!aaEl('aaStatus'))return;/* 只有总览页有这个视图，其它独立页不连服务 */
-  aaResume();aaConnect();
-  fetch(AA_BASE+'/api/health').then(function(r){return r.json()}).then(function(h){
-    if(!h.ok)aaStatus('服务异常','bad');
-  }).catch(function(){aaStatus('服务未启动','bad')});
+  if(!aaEl('aaStatus'))return;/* 只有总览页有这个视图；页面加载零网络请求，避免离线/CI 环境产生 console.error */
+  aaResume();
+  aaStatus('未连接 · 点「连接服务」','');
+  var c=aaEl('aaChat');
+  if(c&&!c.children.length)aaChat('bot','本机服务就绪后点「连接 / 重连服务」，或直接把岗位链接发我。默认演练模式不会真的提交。');
 }
 document.addEventListener('click',function(e){
   var t=e.target;if(!t||!t.closest)return;
+  if(t.closest('#aaRetry')){aaEnsure();return}
   if(t.closest('#aaStart')){aaStart();return}
   if(t.closest('#aaStop')){aaStop();return}
   if(t.closest('#aaChatSend')){aaSend();return}
@@ -2168,7 +2187,7 @@ document.addEventListener('keydown',function(e){
   e.preventDefault();aaSend();
 });
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',aaBoot);else aaBoot();
-window.aaStart=aaStart;window.aaSend=aaSend;window.aaConnect=aaConnect;window.aaBase=function(){return AA_BASE};
+window.aaStart=aaStart;window.aaSend=aaSend;window.aaConnect=aaConnect;window.aaEnsure=aaEnsure;window.aaBase=function(){return AA_BASE};
 
 
 /* ---------- 投递进度：列表 / 阶段进度 / 右栏详情 ---------- */
