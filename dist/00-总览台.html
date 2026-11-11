@@ -697,6 +697,77 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px soli
   .jdp{position:static;max-height:none}
   .jdp-b{max-height:60vh}
 }
+/* ---------- WP1 AI 全自动投递 ---------- */
+.aabar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.aastat{font-family:var(--mono);font-size:var(--fs-micro);padding:3px 8px;border:1px solid var(--line);color:var(--sub)}
+.aastat.ok{color:var(--green);border-color:var(--green)}
+.aastat.bad{color:var(--red);border-color:var(--red)}
+.aacmd{font-family:var(--mono);font-size:var(--fs-micro);color:var(--muted);word-break:break-all;background:var(--field);padding:3px 7px;border:1px solid var(--line)}
+.aaform{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.aawrap{display:grid;grid-template-columns:300px minmax(0,1fr) 420px;gap:12px;align-items:start}
+.aacol{background:var(--card);border:1px solid var(--rule);padding:12px;min-width:0}
+.aacol h4{margin:0 0 9px;font-size:var(--fs-sm);font-weight:700}
+.aachat{height:420px;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:6px 2px}
+.aamsg{max-width:90%;padding:8px 10px;font-size:var(--fs-note);line-height:1.6;border:1px solid var(--line);white-space:pre-wrap;word-break:break-word}
+.aamsg.bot{background:var(--field);align-self:flex-start}
+.aamsg.me{background:var(--pri-soft);align-self:flex-end}
+.aainput{display:flex;gap:6px;margin-top:8px}
+.aainput input{flex:1;min-width:0}
+.aalog{height:420px;overflow:auto;font-family:var(--mono);font-size:var(--fs-micro);line-height:1.7}
+.aaline{padding:2px 0;border-bottom:1px dashed var(--line);color:var(--sub)}
+.aaline.act{color:var(--pri)}
+.aaline.ok{color:var(--green)}
+.aaline.err,.aaline.warn{color:var(--red)}
+.aaline.user{color:var(--txt)}
+.aashot{width:100%;border:1px solid var(--line);background:var(--field);display:block}
+.aashotempty{padding:28px 10px;text-align:center;font-size:var(--fs-note);color:var(--muted);border:1px dashed var(--line)}
+.aafoot{margin-top:10px;font-size:var(--fs-micro);color:var(--muted);line-height:1.7}
+@media (max-width:1400px){.aawrap{grid-template-columns:270px minmax(0,1fr) 340px}}
+@media (max-width:1180px){.aawrap{grid-template-columns:minmax(0,1fr)}.aachat,.aalog{height:280px}.aaform{grid-template-columns:minmax(0,1fr)}}
+/* ---------- WP3 投递进度：列表 + 阶段进度 + 右栏详情 ---------- */
+.apstat{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 10px;padding:9px 12px;border:1px solid var(--line);background:var(--field)}
+.apst{font-size:var(--fs-note);color:var(--sub)}
+.apst b{font-family:var(--mono);font-size:var(--fs-h3);color:var(--txt);margin-right:5px}
+.aptabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.aptab{font:inherit;font-size:var(--fs-note);padding:5px 12px;border:1px solid var(--line);background:var(--card);color:var(--sub);cursor:pointer}
+.aptab.active{background:var(--pri);color:#fff;border-color:var(--pri)}
+.apwrap{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
+.apempty{padding:18px;text-align:center;font-size:var(--fs-note);color:var(--muted);border:1px dashed var(--line)}
+.apfunnel{margin:0 0 10px;border:1px solid var(--line);background:var(--field)}
+.apfunnel summary{padding:7px 12px;cursor:pointer;font-size:var(--fs-note);color:var(--sub)}
+.apfunnel[open] summary{border-bottom:1px solid var(--line)}
+.apfunnel svg{display:block;width:100%;max-width:620px;height:auto;margin:8px auto}
+.apwrap.ap-open{grid-template-columns:minmax(0,1fr) 380px}
+.apwrap .cards{grid-template-columns:minmax(0,1fr)!important}
+.apdp{position:sticky;top:14px;background:var(--card);border:1px solid var(--rule);box-shadow:var(--plate);display:none}
+.apdp-h{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--rule)}
+.apdp-h b{font-size:var(--fs-sm)}
+.apdp-x{font:inherit;font-size:18px;line-height:1;border:0;background:none;color:var(--sub);cursor:pointer;padding:0 4px}
+.apdp-b{padding:12px;overflow:auto;max-height:calc(100vh - 180px)}
+.acard.sel{border-left:3px solid var(--pri);background:var(--pri-soft)}
+.apstep{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:0 0 8px;padding-bottom:7px;border-bottom:1px dashed var(--line)}
+.apdot{width:10px;height:10px;border:1px solid var(--line);background:var(--field);flex:none}
+.apdot.done{background:var(--green);border-color:var(--green)}
+.apdot.cur{background:var(--pri);border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-soft)}
+.apdot.drop{background:var(--red);border-color:var(--red)}
+.apline{width:16px;height:1px;background:var(--line);flex:none}
+.apline.on{background:var(--green)}
+.apcurtag{margin-left:9px;font-family:var(--mono);font-size:var(--fs-micro);color:var(--pri)}
+.apcurtag.drop{color:var(--red)}
+.apd-title{font-size:var(--fs-h3);font-weight:700;margin:0 0 2px}
+.apd-sub{font-size:var(--fs-note);color:var(--sub);margin-bottom:10px}
+.apd-badge{display:inline-block;font-family:var(--mono);font-size:var(--fs-micro);padding:3px 9px;border:1px solid var(--pri);color:var(--pri);margin-bottom:12px}
+.apd-sec{margin:14px 0 6px;font-family:var(--mono);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.apkv{display:grid;grid-template-columns:82px minmax(0,1fr);gap:5px 8px;font-size:var(--fs-note);line-height:1.6}
+.apkv .k{color:var(--muted)}
+.apkv .v{color:var(--txt);word-break:break-word}
+.apkv .v.warn{color:var(--red);font-weight:700}
+.apd-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--rule)}
+.apd-note{font-size:var(--fs-note);color:var(--sub);line-height:1.7;white-space:pre-wrap}
+@media (max-width:1400px){.apwrap.ap-open{grid-template-columns:minmax(0,1fr) 330px}}
+@media (max-width:1180px){.apwrap.ap-open{grid-template-columns:minmax(0,1fr)}.apdp{position:static}.apdp-b{max-height:none}}
+
+
 
 nav.tabbar .tab{cursor:pointer;font-family:inherit}
 .view{display:none}
@@ -737,6 +808,7 @@ nav.tabbar .tab{cursor:pointer;font-family:inherit}
     <button type="button" class="tab snsec" data-sec="agent">求职助理</button>
     <button type="button" class="tab snsec" data-sec="rag">个人知识库</button>
     <button type="button" class="tab snsec" data-sec="tasks">定时任务</button>
+    <button type="button" class="tab snsec" data-sec="auto">AI 自动投递</button>
     <button type="button" class="tab snsec" data-sec="mail">招聘邮箱</button>
     <button type="button" class="tab" data-view="overview" data-sub="me">个人中心</button>
     <div class="sngroup">配置</div>
@@ -945,8 +1017,9 @@ nav.tabbar .tab{cursor:pointer;font-family:inherit}
       <div style="margin-top:10px"><button type="submit" class="btn btn-pri" style="width:100%">保存记录</button></div>
     </form>
   </details>
-  <svg id="ov_funnelSvg" viewBox="0 0 600 200" role="img" aria-label="投递漏斗"></svg>
-  <div class="mtail">投递漏斗（各阶段当前数量）</div>
+  <div class="apstat"><span class="apst"><b data-n="all">0</b>全部投递</span><span class="apst"><b data-n="live">0</b>进行中</span><span class="apst"><b data-n="offer">0</b>已 Offer</span><span class="apst"><b data-n="drop">0</b>已终止</span></div>
+  <div class="aptabs"><button type="button" class="aptab active" data-apfilter="all">全部</button><button type="button" class="aptab" data-apfilter="live">进行中</button><button type="button" class="aptab" data-apfilter="offer">已 Offer</button><button type="button" class="aptab" data-apfilter="drop">已终止</button></div>
+  <details class="apfunnel"><summary>投递漏斗（各阶段当前数量）· 点开查看</summary><svg id="ov_funnelSvg" viewBox="0 0 600 200" role="img" aria-label="投递漏斗"></svg></details>
   <div class="cards" id="ov_appCards" style="margin-top:10px"><div class="empty">加载中…</div></div>
 </section>
 <section id="secAi" style="display:none">
@@ -1032,6 +1105,36 @@ nav.tabbar .tab{cursor:pointer;font-family:inherit}
   <h2><svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>日程安排<span class="cnt" id="schedCnt"></span></h2>
   <p style="margin:0 0 10px;font-size:12px;color:var(--sub)">自动聚合三路日程：投递记录的「下次节点」· 收件箱里待确认的「事项时间」· 你在「定时任务」里加的自定义任务，按日期排序 · 红框 = 已过期，蓝框 = 今天</p>
   <div id="schedList"><div class="empty">加载中…</div></div>
+</section>
+<section id="secAuto" style="display:none">
+  <h2><svg viewBox="0 0 24 24" fill="none" stroke="#1449c4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.3 4-2.5 5.5L15 22H9l-1.5-7.5A7 7 0 0 1 12 2z"/><path d="M9 22h6"/></svg>AI 自动投递<span class="cnt aastat" id="aaStatus">检测服务中…</span></h2>
+  <p class="rachint">本机 Playwright 驱动真实浏览器：鼠标轨迹带抖动与缓动、点击有犹豫停顿、输入逐字符 —— 尽量贴近真人 · 左侧和助手对话，中间看每一步日志，右侧是浏览器实时画面 · 服务只监听 127.0.0.1，简历字段只存本机</p>
+  <div class="aabar">
+    <code class="aacmd" id="aaCmd">双击 scripts/start_auto_apply.bat 启动本机服务 · 地址 http://127.0.0.1:8765</code>
+    <button type="button" class="btn btn-ghost btn-sm" id="aaSelfTest">跑一次自测</button>
+  </div>
+  <div class="aaform">
+    <div><label class="fl">岗位链接</label><input id="aaUrl" placeholder="https://www.nowcoder.com/jobs/detail/..."></div>
+    <div><label class="fl">目标站点</label><select id="aaSite"><option value="nowcoder">牛客网</option><option value="bytedance">字节招聘（需先登录）</option><option value="mock">内置模拟页（自测）</option></select></div>
+  </div>
+  <div class="aabar">
+    <label style="display:flex;align-items:center;gap:6px;font-size:var(--fs-sm)"><input type="checkbox" id="aaDry" checked style="width:auto"> 演练模式（跑完全流程但不点最终提交）</label>
+    <button type="button" class="btn btn-pri btn-sm" id="aaStart">开始投递</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="aaStop" disabled>停止任务</button>
+  </div>
+  <details class="add" style="margin-bottom:12px"><summary>投递简历字段（只存本机，发给本机服务用于填表）</summary>
+    <div class="formrow"><div><label class="fl">姓名</label><input id="aaName"></div><div><label class="fl">手机号</label><input id="aaPhone"></div></div>
+    <div class="formrow"><div><label class="fl">邮箱</label><input id="aaEmail"></div><div><label class="fl">自我介绍</label><input id="aaNote"></div></div>
+  </details>
+  <div class="aawrap">
+    <div class="aacol"><h4>和助手对话</h4><div class="aachat" id="aaChat"></div>
+      <div class="aainput"><input id="aaChatIn" placeholder="发岗位链接，或问进度 / 叫停"><button type="button" class="btn btn-pri btn-sm" id="aaChatSend">发送</button></div></div>
+    <div class="aacol"><h4>任务日志</h4><div class="aalog" id="aaLog"><div class="aaline">等待任务…</div></div></div>
+    <div class="aacol"><h4>浏览器实时画面 <span id="aaShotTag" style="font-weight:400;color:var(--muted)"></span></h4>
+      <div class="aashotempty" id="aaShotEmpty">任务开始后，这里会实时显示浏览器画面</div>
+      <img class="aashot" id="aaShot" alt="浏览器实时画面" style="display:none"></div>
+  </div>
+  <div class="aafoot">风险提示：全自动投递可能触发目标站风控/验证码，账号风险自负。遇到验证码服务会暂停并在对话栏喊你；匹配度过低的岗位也会先问你。字节招聘需要你先在浏览器里登录。线上 https 页面无法连接本机 http 服务，请用本地 HTML 打开。</div>
 </section>
 <section id="secTasks" style="display:none">
   <h2><svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l2 2"/><circle cx="12" cy="12" r="9"/></svg>定时任务<span class="cnt" id="taskCnt"></span></h2>
@@ -1828,6 +1931,248 @@ function fcOne(chips){
 /* 无参：刷新全部 .fchips（合并版三个视图同时在 DOM，各自独立渲染） */
 function fcRender(){var all=document.querySelectorAll('.fchips');for(var i=0;i<all.length;i++)fcOne(all[i])}
 window.mtPassBand=mtPassBand;window.fcRender=fcRender;
+
+
+/* ---------- AI 全自动投递：本地服务客户端 ---------- */
+var AA_BASE=localStorage.getItem('wb_aa_base')||'http://127.0.0.1:8765';
+if(AA_BASE.charAt(AA_BASE.length-1)==='/')AA_BASE=AA_BASE.slice(0,-1);
+var AA_ES=null,AA_RUN=false;
+function aaEl(id){return document.getElementById(id)}
+function aaStatus(txt,kind){var e=aaEl('aaStatus');if(!e)return;e.textContent=txt;e.className='aastat'+(kind?' '+kind:'')}
+function aaChat(role,text){
+  var box=aaEl('aaChat');if(!box)return;
+  var d=document.createElement('div');d.className='aamsg '+(role==='me'?'me':'bot');d.textContent=text;
+  box.appendChild(d);box.scrollTop=box.scrollHeight;
+}
+function aaLog(o){
+  var box=aaEl('aaLog');if(!box)return;
+  if(box.children.length===1&&box.children[0].className==='aaline'&&box.children[0].textContent.indexOf('等待任务')>=0)box.innerHTML='';
+  var d=document.createElement('div');d.className='aaline '+(o.kind||'info');
+  var t=new Date(o.t||Date.now());
+  d.textContent=('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2)+':'+('0'+t.getSeconds()).slice(-2)+'  '+o.msg;
+  box.appendChild(d);box.scrollTop=box.scrollHeight;
+}
+function aaFrame(o){
+  var im=aaEl('aaShot'),em=aaEl('aaShotEmpty');if(!im)return;
+  im.src='data:image/jpeg;base64,'+o.b64;im.style.display='block';if(em)em.style.display='none';
+  var tag=aaEl('aaShotTag');if(tag)tag.textContent=o.tag||'浏览器实时画面';
+}
+function aaBind(es,type,fn){es.addEventListener(type,function(ev){try{fn(JSON.parse(ev.data))}catch(e){}})}
+function aaConnect(){
+  if(AA_ES){try{AA_ES.close()}catch(e){}AA_ES=null}
+  try{AA_ES=new EventSource(AA_BASE+'/api/events')}catch(e){aaStatus('连接失败','bad');return}
+  AA_ES.onopen=function(){aaStatus('已连接 · '+AA_BASE,'ok')};
+  AA_ES.onerror=function(){aaStatus('服务未启动 / 连接中断','bad')};
+  aaBind(AA_ES,'log',aaLog);
+  aaBind(AA_ES,'shot',aaFrame);
+  aaBind(AA_ES,'chat',function(o){aaChat(o.role,o.text)});
+  aaBind(AA_ES,'state',function(o){
+    AA_RUN=!!o.running;
+    aaStatus(o.running?('任务运行中 · '+(o.site||'')):('已连接 · '+AA_BASE),'ok');
+    var b=aaEl('aaStart'),s=aaEl('aaStop');if(b)b.disabled=o.running;if(s)s.disabled=!o.running;
+  });
+  aaBind(AA_ES,'ask',function(o){aaChat('bot','需要你确认：'+o.q)});
+  aaBind(AA_ES,'record',function(o){
+    aaChat('bot','投递完成，正在同步到「投递跟踪」…');
+    try{
+      if(typeof applyToTracking==='function'){
+        applyToTracking(null,{company:o.company,position:o.position,link:o.url}).then(function(){aaChat('bot','已写入投递跟踪。')}).catch(function(e){aaChat('bot','回写失败：'+String(e&&e.message||e))});
+      }else aaChat('bot','当前页面没有回写通道，请手动记录这一条。');
+    }catch(e){aaChat('bot','回写异常：'+String(e&&e.message||e))}
+  });
+  aaBind(AA_ES,'done',function(o){
+    AA_RUN=false;var b=aaEl('aaStart'),s=aaEl('aaStop');if(b)b.disabled=false;if(s)s.disabled=true;
+    aaLog({t:Date.now(),msg:o.ok===false?('结束：'+o.msg):(o.dryRun?'演练完成，未提交':'任务完成'),kind:o.ok===false?'err':'ok'});
+  });
+}
+function aaPost(path,obj){
+  return fetch(AA_BASE+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}).then(function(r){return r.json()});
+}
+function aaResume(){
+  var v={};try{v=JSON.parse(localStorage.getItem('wb_aa_resume')||'{}')}catch(e){}
+  var ids=['aaName','aaPhone','aaEmail','aaNote'],keys=['name','phone','email','note'];
+  for(var i=0;i<ids.length;i++){
+    (function(id,k){
+      var e=aaEl(id);if(!e)return;
+      if(e.value)v[k]=e.value;e.value=v[k]||'';
+      e.addEventListener('change',function(){try{var o=JSON.parse(localStorage.getItem('wb_aa_resume')||'{}');o[k]=e.value;localStorage.setItem('wb_aa_resume',JSON.stringify(o))}catch(err){}});
+    })(ids[i],keys[i]);
+  }
+  return v;
+}
+function aaStart(){
+  var u=aaEl('aaUrl'),s=aaEl('aaSite'),d=aaEl('aaDry');if(!u)return;
+  var site=s?s.value:'nowcoder';
+  var cfg={site:site,url:(u.value||'').trim(),dryRun:!d||d.checked,resume:aaResume()};
+  if(!cfg.url&&site!=='mock'){aaChat('bot','先贴一个岗位链接，或选「内置模拟页」跑一次自测。');return}
+  if(site==='mock')cfg.url=AA_BASE+'/api/mock';
+  aaPost('/api/task',cfg).then(function(r){
+    if(!r.ok)aaChat('bot','没能启动：'+(r.msg||''));
+    else aaLog({t:Date.now(),msg:'任务已提交 · '+(cfg.dryRun?'演练模式':'真实投递'),kind:'act'});
+  }).catch(function(){aaChat('bot','连不上本机服务。请双击 scripts/start_auto_apply.bat 启动后再试。')});
+}
+function aaStop(){aaPost('/api/stop',{}).catch(function(){})}
+function aaSend(){
+  var i=aaEl('aaChatIn');if(!i)return;var t=(i.value||'').trim();if(!t)return;i.value='';
+  aaChat('me',t);aaPost('/api/reply',{text:t}).catch(function(){});
+  var m=t.match(/https?:\/\/[^\s]+/);
+  if(m){var u=aaEl('aaUrl');if(u)u.value=m[0];aaChat('bot','已识别岗位链接，点「开始投递」我就接管浏览器。');return}
+  if(/停止|取消|别投/.test(t)){aaStop();aaChat('bot','已发停止指令。');return}
+  if(/状态|进度|在干嘛/.test(t)){aaChat('bot',AA_RUN?'正在跑任务，右侧是浏览器实时画面。':'当前空闲，可以给我一个岗位链接。');return}
+  if(/演练|安全|风险/.test(t)){aaChat('bot','默认演练模式：打开页面、读 JD、算匹配、模拟真人填表，但不点最终提交。关掉「演练模式」才会真投。');return}
+  if(/自测|测试/.test(t)){var s=aaEl('aaSite'),u2=aaEl('aaUrl');if(s)s.value='mock';if(u2)u2.value='';aaChat('bot','已切到内置模拟页（无需外网/登录），点「开始投递」即可跑完整流程。');return}
+  aaChat('bot','我可以：读岗位链接并自动投递、实时汇报每一步、遇到验证码喊你。也可以直接把链接发我。');
+}
+function aaBoot(){
+  if(!aaEl('aaStatus'))return;/* 只有总览页有这个视图，其它独立页不连服务 */
+  aaResume();aaConnect();
+  fetch(AA_BASE+'/api/health').then(function(r){return r.json()}).then(function(h){
+    if(!h.ok)aaStatus('服务异常','bad');
+  }).catch(function(){aaStatus('服务未启动','bad')});
+}
+document.addEventListener('click',function(e){
+  var t=e.target;if(!t||!t.closest)return;
+  if(t.closest('#aaStart')){aaStart();return}
+  if(t.closest('#aaStop')){aaStop();return}
+  if(t.closest('#aaChatSend')){aaSend();return}
+  if(t.closest('#aaSelfTest')){
+    var s=aaEl('aaSite'),u=aaEl('aaUrl');if(s)s.value='mock';if(u)u.value='';
+    aaChat('bot','已切到内置模拟页（无需外网/登录），点「开始投递」即可跑一次完整流程。');return;
+  }
+});
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Enter')return;var t=e.target;if(!t||t.id!=='aaChatIn')return;
+  e.preventDefault();aaSend();
+});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',aaBoot);else aaBoot();
+window.aaStart=aaStart;window.aaSend=aaSend;window.aaConnect=aaConnect;window.aaBase=function(){return AA_BASE};
+
+
+/* ---------- 投递进度：列表 / 阶段进度 / 右栏详情 ---------- */
+var AP_FILTER='all';
+function apEl(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+function apPass(a){
+  if(AP_FILTER==='all')return true;
+  var s=appStage(a);
+  if(AP_FILTER==='live')return s!=='Offer'&&s!=='感谢信'&&s!==DROP_STAGE;
+  if(AP_FILTER==='offer')return s==='Offer';
+  if(AP_FILTER==='drop')return s===DROP_STAGE||s==='感谢信';
+  return true;
+}
+function apStats(){
+  var box=document.querySelector('.apstat');if(!box)return;
+  var all=state.apps||[],n={all:all.length,live:0,offer:0,drop:0};
+  all.forEach(function(a){var s=appStage(a);if(s==='Offer')n.offer++;else if(s===DROP_STAGE||s==='感谢信')n.drop++;else n.live++});
+  Array.prototype.forEach.call(box.querySelectorAll('[data-n]'),function(e){e.textContent=n[e.getAttribute('data-n')]||0});
+}
+function apWrapOf(box){
+  if(!box)return null;
+  if(box.__apwrap)return box.__apwrap;
+  var par=box.parentNode;if(!par)return null;
+  var w=document.createElement('div');w.className='apwrap';
+  par.insertBefore(w,box);w.appendChild(box);
+  var d=document.createElement('aside');d.className='apdp';
+  d.innerHTML='<div class="apdp-h"><b>投递详情</b><button type="button" class="apdp-x" aria-label="关闭详情">×</button></div><div class="apdp-b"></div>';
+  w.appendChild(d);box.__apwrap=w;
+  d.querySelector('.apdp-x').addEventListener('click',apClose);
+  if(window.MutationObserver&&!box.__apmo){
+    box.__apmo=new MutationObserver(function(){apApplyFilter()});
+    box.__apmo.observe(box,{childList:true});
+  }
+  return w;
+}
+function apApplyFilter(){
+  var shown=0;
+  Array.prototype.forEach.call(document.querySelectorAll('.apwrap .acard'),function(c){
+    var a=c.__rvRec||c.__apRec,ok=a?apPass(a):true;
+    if(ok)shown++;
+    c.style.display=ok?'':'none';
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.apwrap'),function(w){
+    var box=w.querySelector('.cards'),e=w.querySelector('.apempty');
+    if(!box)return;
+    if(!shown&&AP_FILTER!=='all'){
+      if(!e){e=apEl('div','apempty','该分类下暂无投递记录');box.appendChild(e)}
+    }else if(e)e.parentNode.removeChild(e);
+  });
+}
+function apClose(){
+  Array.prototype.forEach.call(document.querySelectorAll('.apwrap.ap-open'),function(w){w.classList.remove('ap-open');var d=w.querySelector('.apdp');if(d)d.style.display='none'});
+  Array.prototype.forEach.call(document.querySelectorAll('.acard.sel'),function(c){c.classList.remove('sel')});
+}
+function apStep(cur,drop){
+  var idx=STAGES.indexOf(cur),h=apEl('div','apstep');
+  STAGES.forEach(function(s,i){
+    var cls='apdot'+(drop?' drop':(idx>=0&&i<idx?' done':'')+(i===idx?' cur':''));
+    var dot=apEl('span',cls);dot.title=s;h.appendChild(dot);
+    if(i<STAGES.length-1)h.appendChild(apEl('span','apline'+(idx>i?' on':'')));
+  });
+  h.appendChild(apEl('span','apcurtag'+(drop?' drop':''),cur));
+  return h;
+}
+function apDecorate(card,a){
+  var cur=appStage(a),drop=(cur===DROP_STAGE||cur==='感谢信');
+  card.insertBefore(apStep(cur,drop),card.firstChild);
+  card.addEventListener('click',function(e){
+    var t=e.target;if(!t||!t.closest)return;
+    if(t.closest('button,a,input,select,textarea,label,.astagebox,.arv'))return;
+    apOpen(a,card);
+  });
+}
+function apKV(b,rows){
+  var g=apEl('div','apkv');
+  rows.forEach(function(r){
+    g.appendChild(apEl('span','k',r[0]));
+    var v=apEl('span','v'+(r[2]?' warn':''),r[1]||'—');g.appendChild(v);
+  });
+  b.appendChild(g);
+}
+function apOpen(a,card){
+  var w=card?card.closest('.apwrap'):null,d=w?w.querySelector('.apdp'):null;if(!d)return;
+  apClose();w.classList.add('ap-open');d.style.display='block';
+  if(card)card.classList.add('sel');
+  var b=d.querySelector('.apdp-b');b.innerHTML='';
+  var cur=appStage(a),drop=(cur===DROP_STAGE||cur==='感谢信');
+  b.appendChild(apEl('div','apd-title',plain(a['公司'])||'未命名公司'));
+  b.appendChild(apEl('div','apd-sub',plain(a['岗位'])||'—'));
+  b.appendChild(apEl('div','apd-badge',cur));
+  b.appendChild(apEl('div','apd-sec','阶段进度'));
+  b.appendChild(apStep(cur,drop));
+  b.appendChild(apEl('div','apd-sec','关键节点'));
+  var nd=dOnly(a['下次节点']),over=nd&&nd<today()&&!drop;
+  apKV(b,[['投递日期',dOnly(a['投递日期'])],['当前阶段',cur],['下次节点',nd?(nd+(over?'（已过期）':'')):'未设置',over],['相关链接',urlVal(a['相关链接']).link||'无']]);
+  b.appendChild(apEl('div','apd-sec','节点说明'));
+  b.appendChild(apEl('div','apd-note',plain(a['节点说明'])||'暂无'));
+  if(plain(a['复盘笔记'])){b.appendChild(apEl('div','apd-sec','复盘笔记'));b.appendChild(apEl('div','apd-note',plain(a['复盘笔记'])))}
+  var acts=apEl('div','apd-acts');
+  var bs=apEl('button','btn btn-pri btn-sm','改阶段');bs.type='button';
+  bs.addEventListener('click',function(){
+    var tag=card?card.querySelector('[data-field="当前阶段"]'):null;
+    if(tag)tag.click();
+    if(card&&card.scrollIntoView)card.scrollIntoView({block:'center'});
+  });
+  acts.appendChild(bs);
+  var bl=apEl('button','btn btn-ghost btn-sm','打开链接');bl.type='button';
+  bl.addEventListener('click',function(){var l=urlVal(a['相关链接']).link;if(l&&window.openLink)openLink(l)});
+  acts.appendChild(bl);
+  var br=apEl('button','btn btn-ghost btn-sm','AI 复盘');br.type='button';
+  br.addEventListener('click',function(){var v=card?card.querySelector('.arv'):null;if(v)v.click();else if(window.rvOpen)rvOpen(a)});
+  acts.appendChild(br);
+  b.appendChild(acts);
+  b.__apRec=a;
+}
+document.addEventListener('click',function(e){
+  var t=e.target;if(!t||!t.closest)return;
+  var b=t.closest('.aptab');
+  if(b){
+    AP_FILTER=b.getAttribute('data-apfilter')||'all';
+    Array.prototype.forEach.call(document.querySelectorAll('.aptab'),function(x){x.classList.toggle('active',x===b)});
+    apApplyFilter();apClose();
+    return;
+  }
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')apClose()});
+window.apOpen=apOpen;window.apClose=apClose;window.apStats=apStats;window.apApplyFilter=apApplyFilter;window.apFilter=function(){return AP_FILTER};
 
 
 /* ---------- 设置面板：底色方案（attribute）× 信号色（inline）两轴正交 ----------
@@ -4455,6 +4800,7 @@ window.pendSkip=pendSkip;window.pendSkipped=pendSkipped;window.pendCheck=pendChe
 /* ---------- 我的空间：侧栏路由 + 定时任务 + 日程 + 求职助理 + 邮件粘贴解析 ---------- */
 var OV_SECS={
   today:['ovToday'],
+  auto:['secAuto'],
   apps:['secApps'],
   sched:['secSched'],
   agent:['secAgent'],
@@ -5188,9 +5534,11 @@ function renderFunnel(){
   STAGES.forEach(function(s,i){var c=counts[s]||0;$('ov_fbar'+i).setAttribute('width',Math.round(440*c/max));$('ov_fcnt'+i).textContent=c;});
 }
 function renderApps(){
-  var box=$('ov_appCards'),rows=state.apps.slice().sort(function(a,b){var x=dOnly(a['下次节点'])||'9999',y=dOnly(b['下次节点'])||'9999';return x<y?-1:1});
-  setText('ov_appCnt',rows.length+' 条记录');
-  if(!rows.length){box.innerHTML='<div class="empty">暂无投递记录，点上方「添加投递记录」开始跟踪</div>';return}
+  var box=$('ov_appCards');if(!box)return;
+  apWrapOf(box);apStats();
+  var rows=state.apps.slice().filter(function(a){return apPass(a)}).sort(function(a,b){var x=dOnly(a['下次节点'])||'9999',y=dOnly(b['下次节点'])||'9999';return x<y?-1:1});
+  setText('ov_appCnt',state.apps.length+' 条记录');
+  if(!rows.length){box.innerHTML='<div class="empty">该筛选下暂无投递记录</div>';apClose();return}
   box.innerHTML='';
   rows.forEach(function(a){
     var card=$('ov_tplApp').cloneNode(true);card.removeAttribute('id');
@@ -5230,7 +5578,7 @@ function renderApps(){
     card.querySelector('.anote').addEventListener('click',function(){var v=prompt('复盘笔记：',plain(a['复盘笔记']));if(v===null)return;db.updateRecord({databaseId:'oBGkMFTv9Xv4Xn5gFOK18S',recordId:recId(a),properties:{'复盘笔记':{text:v}}}).then(reloadAll).catch(function(e){console.error('[database] 更新失败:'+((e&&e.message)||String(e)))})});
     card.querySelector('.adel').addEventListener('click',function(){if(!confirm('确定删除「'+plain(a['公司'])+'」这条记录吗？'))return;db.deleteRecord({databaseId:'oBGkMFTv9Xv4Xn5gFOK18S',recordId:recId(a)}).then(reloadAll).catch(function(e){console.error('[database] 删除失败:'+((e&&e.message)||String(e)))})});
     rvPaint(a);/* 已生成的 AI 复盘直接显示在卡片上 */
-    box.appendChild(card);
+    box.appendChild(card);apDecorate(card,a);
   });
 }
 /* ---------- 情报收件箱：解析结果只是建议，确认后才写入投递跟踪 ---------- */
@@ -6019,7 +6367,7 @@ MODS.push({name:'intern',refresh:function(){renderInterns();},setup:function(){r
 })();
 
 
-var SEC_NAMES=['apps','sched','agent','rag','tasks','mail','cfg'];
+var SEC_NAMES=['auto','apps','sched','agent','rag','tasks','mail','cfg'];
 function showView(name){
   if(SEC_NAMES.indexOf(name)>=0){
     Array.prototype.forEach.call(document.querySelectorAll('.view'),function(v){v.className='view'+(v.id==='view_overview'?' active':'')});

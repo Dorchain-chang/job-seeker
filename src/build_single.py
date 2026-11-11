@@ -175,6 +175,7 @@ NAV_SINGLE = """
     <button type="button" class="tab snsec" data-sec="agent">求职助理</button>
     <button type="button" class="tab snsec" data-sec="rag">个人知识库</button>
     <button type="button" class="tab snsec" data-sec="tasks">定时任务</button>
+    <button type="button" class="tab snsec" data-sec="auto">AI 自动投递</button>
     <button type="button" class="tab snsec" data-sec="mail">招聘邮箱</button>
     <button type="button" class="tab" data-view="overview" data-sub="me">个人中心</button>
     <div class="sngroup">配置</div>
@@ -231,7 +232,7 @@ nav.tabbar .tab{cursor:pointer;font-family:inherit}
 """
 
 BOOT_JS = r"""
-var SEC_NAMES=['apps','sched','agent','rag','tasks','mail','cfg'];
+var SEC_NAMES=['auto','apps','sched','agent','rag','tasks','mail','cfg'];
 function showView(name){
   if(SEC_NAMES.indexOf(name)>=0){
     Array.prototype.forEach.call(document.querySelectorAll('.view'),function(v){v.className='view'+(v.id==='view_overview'?' active':'')});
