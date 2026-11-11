@@ -994,6 +994,39 @@ const MOCK = `
     if (!match.noResumeHint || !match.noWrite || !match.jdOk || !match.badge0 || !match.storedOk || !match.sortOk) errors.push('match scoring broken');
   }
 
+  // M2c 详情面板：点卡片 → 右栏 .jdp 打开（三栏）→ 切卡 → ESC 关
+  const jd = await page.evaluate(async () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const box = document.getElementById('at_jobCards') || document.getElementById('jobCards');
+    if (!box) return { missing: true };
+    const card0 = box.querySelectorAll('.jcard')[0], card1 = box.querySelectorAll('.jcard')[1];
+    if (!card0 || !card0.__mtRec) return { missing: true };
+    const wrap = box.parentNode;
+    const wrapOk = wrap.classList.contains('jdwrap') && !!wrap.querySelector('aside.jdp');
+    // ① 开
+    card0.querySelector('[data-field="公司"]').click();
+    await sleep(60);
+    const pnl = wrap.querySelector('aside.jdp');
+    const openOk = wrap.classList.contains('jd-open') && pnl && getComputedStyle(pnl).display === 'flex';
+    const coOk = pnl.querySelector('.jdp-co').textContent === (card0.__mtRec['公司'] && (card0.__mtRec['公司'].text || card0.__mtRec['公司']) || '');
+    const selOk = box.querySelectorAll('.jcard.sel').length === 1;
+    // ② 切
+    card1.querySelector('[data-field="公司"]').click();
+    await sleep(60);
+    const swSel = box.querySelectorAll('.jcard.sel').length === 1 && pnl.querySelector('.jdp-co').textContent !== '';
+    // ③ 关
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await sleep(40);
+    const closedOk = !wrap.classList.contains('jd-open') && box.querySelectorAll('.jcard.sel').length === 0;
+    return { wrapOk, openOk, coOk, selOk, swSel, closedOk };
+  });
+  if (jd.missing) {
+    console.log('详情面板: 未找到岗位卡片，跳过');
+  } else {
+    console.log('详情面板: wrap=', jd.wrapOk, '| 打开=', jd.openOk, '| 公司名=', jd.coOk, '| 高亮=', jd.selOk, '| 切卡=', jd.swSel, '| ESC关=', jd.closedOk);
+    if (!jd.wrapOk || !jd.openOk || !jd.coOk || !jd.selOk || !jd.swSel || !jd.closedOk) errors.push('job detail panel broken');
+  }
+
   // M2b 单页版自洽：不能残留生产资料库深链，无简历引导链接必须走页内切视图
   //     （与 CI lint 的「demo 自包含」「合并版无跨节点跳转」两条断言同源，
   //      历史上就是因为这里没有断言，链接漏进合并版 4 天没被发现）

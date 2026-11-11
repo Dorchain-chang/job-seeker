@@ -251,7 +251,7 @@ section>h2 .cnt{margin-left:auto;font-family:var(--mono);font-size:var(--fs-cap)
 .jcard,.acard{background:var(--field);border:1px solid var(--line);border-radius:var(--radius);padding:13px 15px;display:flex;flex-direction:column;gap:6px;transition:box-shadow .18s,transform .18s,border-color .18s;position:relative}
 .jcard:hover,.acard:hover{border-color:var(--rule);background:var(--card-2)}
 .jcard.soe{border-color:var(--line);box-shadow:inset 4px 0 0 var(--red)}
-.jrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.jrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-right:46px}
 .jrow b{font-size:var(--fs-h2);flex:none}
 .tag{font-size:var(--fs-tag);font-weight:500;padding:2.5px 9px;border-radius:0;background:var(--bg-2);color:var(--txt);border:1px solid var(--line);flex:none}
 .tag.ok{background:var(--green-soft);color:var(--green)}
@@ -647,6 +647,47 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px soli
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .savepath.set{color:var(--pri)}
 .savenote{font-size:var(--fs-micro);color:var(--muted);line-height:1.55;margin-top:6px}
+/* ---------- 岗位详情面板：中列表 + 右详情（三栏，点卡片即开） ---------- */
+.jdwrap{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+.jdwrap.jd-open{grid-template-columns:minmax(0,1fr) 396px}
+/* 列表变窄后强制单栏，否则 396px 侧栏会把两栏卡片挤成条状 */
+.jdwrap.jd-open .cards{display:grid;grid-template-columns:minmax(0,1fr)}
+.jdp{display:none;flex-direction:column;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--radius);position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:hidden}
+.jdwrap.jd-open .jdp{display:flex}
+.jdp-h{display:flex;align-items:flex-start;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.jdp-h .jdp-hb{min-width:0;flex:1}
+.jdp-h b{display:block;font-size:var(--fs-h3);line-height:1.35;color:var(--txt);word-break:break-word}
+.jdp-sub{margin-top:3px;font-family:var(--mono);font-size:var(--fs-micro);color:var(--sub);word-break:break-word}
+.jdp-x{margin-left:auto;flex:0 0 auto;appearance:none;background:none;border:0;color:var(--muted);
+  font-size:20px;line-height:1;cursor:pointer;padding:0 2px;border-radius:var(--radius)}
+.jdp-x:hover{color:var(--txt)}
+.jdp-b{overflow:auto;padding:12px 14px;flex:1;min-height:0}
+.jdp-ring{display:flex;align-items:center;gap:12px;margin-bottom:14px;
+  border:1px solid var(--line-2);background:var(--bg-2);padding:10px 12px}
+.jdp-ring .jring-wrap{position:static;width:56px;height:56px;flex:0 0 auto;cursor:default}
+.jdp-ring .jring{width:56px;height:56px}
+.jdp-rt{min-width:0;font-family:var(--mono);font-size:var(--fs-nano);letter-spacing:.06em;color:var(--muted);line-height:1.7}
+.jdp-rt b{display:block;font-size:var(--fs-h3);color:var(--txt);letter-spacing:0;margin-bottom:2px}
+.jdp-kv{display:grid;grid-template-columns:58px minmax(0,1fr);gap:7px 10px;margin:0;font-size:var(--fs-sm)}
+.jdp-kv dt{font-family:var(--mono);font-size:var(--fs-micro);letter-spacing:.06em;color:var(--muted);
+  text-transform:uppercase;padding-top:2px}
+.jdp-kv dd{margin:0;color:var(--txt-2);word-break:break-word;line-height:1.55}
+.jdp-sec{font-family:var(--mono);font-size:var(--fs-micro);letter-spacing:var(--tr-label);
+  text-transform:uppercase;color:var(--muted);border-top:1px solid var(--line-2);
+  padding-top:8px;margin:14px 0 6px}
+.jdp-txt{font-size:var(--fs-sm);line-height:1.7;color:var(--txt-2);white-space:pre-wrap;
+  word-break:break-word;max-height:200px;overflow:auto}
+.jdp-hit{color:var(--green)}.jdp-gap{color:var(--orange)}
+.jdp-f{display:flex;gap:6px;padding:10px 14px;border-top:1px solid var(--line);flex-wrap:wrap}
+.jdp-f .btn{flex:1 1 auto;justify-content:center;min-width:84px}
+.jcard.sel{border-color:var(--pri);box-shadow:inset 3px 0 0 var(--pri)}
+.jcard.sel:hover{border-color:var(--pri);background:var(--card-2)}
+@media (max-width:1180px){
+  .jdwrap.jd-open{grid-template-columns:minmax(0,1fr)}
+  .jdp{position:static;max-height:none}
+  .jdp-b{max-height:60vh}
+}
 
 nav.tabbar .tab{cursor:pointer;font-family:inherit}
 .view{display:none}
@@ -1543,6 +1584,7 @@ function cardDelete(j,kind){
 /* kind: 'job'（秋招/央国企）| 'intern'（实习）—— 决定写哪张表、链接是否记 pending */
 function bindCardDelegate(box,kind){
   if(!box||box.__dlg)return;box.__dlg=1;
+  jdWrapOf(box);
   box.addEventListener('click',function(e){
     var t=e.target;if(!t||!t.closest)return;
     var card=t.closest('.jcard');if(!card||!box.contains(card))return;
@@ -1557,7 +1599,12 @@ function bindCardDelegate(box,kind){
       e.preventDefault();
       var l=(kind==='intern')?urlVal(j['投递链接']).link:jobLink(j);
       if(l){if(kind!=='intern')pendArm(j);openLink(l)}else{showIntel(fieldText(j,'公司'),nkId(j))}
+      return;
     }
+    /* 点状态下拉是在选值，不要顺带开详情 */
+    if(t.closest('.jstatus'))return;
+    /* 兜底：点卡片空白处 → 右栏开详情（三栏） */
+    jdOpen(card,kind);
   });
   box.addEventListener('change',function(e){
     var t=e.target;if(!t||!t.classList||!t.classList.contains('jstatus'))return;
@@ -1578,6 +1625,143 @@ function bindCardDelegate(box,kind){
       .catch(function(er){console.error('[database] 更新失败:'+((er&&er.message)||String(er)));t.disabled=false;toast('更新失败：'+((er&&er.message)||String(er)),'err')});
   });
 }
+
+
+/* ---------- 岗位详情面板（点卡片开右栏，再点其他卡片即切换） ---------- */
+function jdEl(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=String(txt);return e}
+/* 把 .cards 包进 .jdwrap 并挂一个 aside。每个岗位台各自一份，互不影响 */
+function jdWrapOf(box){
+  if(!box)return null;
+  if(box.__jdw)return box.__jdw;
+  var w=jdEl('div','jdwrap');
+  box.parentNode.insertBefore(w,box);w.appendChild(box);
+  var p=jdEl('aside','jdp');
+  var h=jdEl('div','jdp-h');
+  var hb=jdEl('div','jdp-hb');
+  var co=jdEl('b','jdp-co','');
+  var sub=jdEl('div','jdp-sub','');
+  hb.appendChild(co);hb.appendChild(sub);
+  var x=jdEl('button','jdp-x','×');x.type='button';x.setAttribute('aria-label','关闭详情');
+  h.appendChild(hb);h.appendChild(x);
+  var bd=jdEl('div','jdp-b');
+  var ft=jdEl('div','jdp-f');
+  p.appendChild(h);p.appendChild(bd);p.appendChild(ft);
+  w.appendChild(p);
+  box.__jdw={w:w,p:p,co:co,sub:sub,bd:bd,ft:ft,cur:null,kind:''};
+  x.addEventListener('click',function(){jdClose(box)});
+  return box.__jdw;
+}
+function jdClose(box){
+  var d=box&&box.__jdw;if(!d)return;
+  d.w.classList.remove('jd-open');
+  var s=box.querySelectorAll('.jcard.sel');
+  for(var i=0;i<s.length;i++)s[i].classList.remove('sel');
+  d.cur=null;
+}
+function jdKvAdd(kv,k,v){
+  kv.appendChild(jdEl('dt',null,k));
+  kv.appendChild(jdEl('dd',null,(v==null||v==='')?'—':v));
+}
+function jdOpen(card,kind){
+  var j=card&&card.__mtRec;if(!j)return;
+  var box=card.closest?card.closest('.cards'):null;
+  if(!box)return;
+  var d=jdWrapOf(box);if(!d)return;
+  d.kind=kind||'job';d.cur=card;
+
+  d.co.textContent=fieldText(j,'公司')||'—';
+  var sub=kind==='intern'?fieldText(j,'岗位名称'):fieldText(j,'岗位方向');
+  d.sub.textContent=sub||'（未填方向）';
+
+  var bd=d.bd;bd.innerHTML='';
+  /* 匹配度：直接复用卡片的 mtRing，尺寸由 .jdp-ring .jring 放大 */
+  var sc=mtScore(j);
+  var rg=jdEl('div','jdp-ring');
+  var rw=jdEl('div','jring-wrap');
+  rw.innerHTML=mtRing(sc);
+  rw.style.cursor='default';
+  var rt=jdEl('div','jdp-rt');
+  rt.appendChild(jdEl('b',null,(sc==null?'未打分':(sc+' 分'))));
+  rt.appendChild(jdEl('span',null,(sc==null?'下方「匹配打分」按简历对比':'简历 ↔ JD 逐条对比结果')));
+  rg.appendChild(rw);rg.appendChild(rt);bd.appendChild(rg);
+
+  var kv=jdEl('dl','jdp-kv');
+  if(kind==='intern'){
+    jdKvAdd(kv,'岗位',fieldText(j,'岗位名称'));
+    jdKvAdd(kv,'薪资',fieldText(j,'薪资'));
+    jdKvAdd(kv,'地点',fieldText(j,'工作地点'));
+    jdKvAdd(kv,'状态',jobStatus(j));
+    jdKvAdd(kv,'截止',dOnly(j['截止日期'])||'待定');
+    jdKvAdd(kv,'来源',fieldText(j,'来源'));
+  }else{
+    var bt=optText('批次',typeof j['批次']==='object'?j['批次'].text||'':String(j['批次']||''));
+    var pr=optText('优先级',typeof j['优先级']==='object'?j['优先级'].text||'':String(j['优先级']||''));
+    jdKvAdd(kv,'批次',bt);
+    jdKvAdd(kv,'方向',fieldText(j,'岗位方向'));
+    jdKvAdd(kv,'地点',fieldText(j,'工作地点'));
+    jdKvAdd(kv,'优先级',pr);
+    jdKvAdd(kv,'状态',jobStatus(j));
+    jdKvAdd(kv,'网申',dOnly(j['网申开始'])||'未记录');
+    jdKvAdd(kv,'截止',dOnly(j['截止日期'])||'待定');
+    jdKvAdd(kv,'来源',fieldText(j,'来源'));
+  }
+  bd.appendChild(kv);
+
+  /* 匹配理由：来自 mtStoreOne 落盘的 hits / gaps / advice */
+  var r=mtGet(j);
+  if(r){
+    bd.appendChild(jdEl('div','jdp-sec','匹配分析'));
+    if(r.hits&&r.hits.length)bd.appendChild(jdEl('div','jdp-txt jdp-hit','匹配：'+r.hits.join('；')));
+    if(r.gaps&&r.gaps.length)bd.appendChild(jdEl('div','jdp-txt jdp-gap','缺口：'+r.gaps.join('；')));
+    if(r.advice)bd.appendChild(jdEl('div','jdp-txt','建议：'+r.advice));
+    var src=[r.resumeName||'简历',r.intent||'',r.at||''].filter(function(x){return !!x}).join(' · ');
+    if(src)bd.appendChild(jdEl('div','jdp-sec','打分依据 · '+src));
+  }
+
+  var note=fieldText(j,'备注');
+  var jdt=mtJdText(j)||'';
+  if(note){bd.appendChild(jdEl('div','jdp-sec','备注'));bd.appendChild(jdEl('div','jdp-txt',note))}
+  if(jdt&&jdt!==note){bd.appendChild(jdEl('div','jdp-sec','岗位描述'));bd.appendChild(jdEl('div','jdp-txt',jdt))}
+  if(!note&&!jdt)bd.appendChild(jdEl('div','jdp-txt','暂无备注与 JD。可点下方「匹配打分」贴 JD 后再打分。'));
+
+  /* 底部动作：与卡片上的按钮等价，不新增写云入口 */
+  var ft=d.ft;ft.innerHTML='';
+  var link=(kind==='intern')?urlVal(j['投递链接']).link:jobLink(j);
+  var a=jdEl('a','btn btn-pri btn-sm',link?'去投递':'找入口');
+  a.href=link||'#';a.target='_blank';a.rel='noopener';
+  a.addEventListener('click',function(e){
+    if(!link){e.preventDefault();showIntel(fieldText(j,'公司'),nkId(j));return}
+    if(kind!=='intern'){e.preventDefault();pendArm(j);openLink(link)}
+  });
+  ft.appendChild(a);
+  var bi=jdEl('button','btn btn-ghost btn-sm','公司情报');bi.type='button';
+  bi.addEventListener('click',function(){showIntel(fieldText(j,'公司'),nkId(j))});
+  ft.appendChild(bi);
+  var bm=jdEl('button','btn btn-ghost btn-sm',(r?'重新打分':'匹配打分'));bm.type='button';
+  bm.addEventListener('click',function(){mtRun(j,bm,card,function(){jdOpen(card,kind)})});
+  ft.appendChild(bm);
+  if(kind!=='intern'&&jobStatus(j)!=='已投递'&&jobStatus(j)!=='不投了'){
+    var bk=jdEl('button','btn btn-ghost btn-sm','标已投');bk.type='button';
+    bk.addEventListener('click',function(){cardMarkApplied(j)});
+    ft.appendChild(bk);
+  }
+
+  var old=box.querySelectorAll('.jcard.sel');
+  for(var k=0;k<old.length;k++)old[k].classList.remove('sel');
+  card.classList.add('sel');
+  d.w.classList.add('jd-open');
+}
+/* ESC 关闭当前打开的详情（三台各自独立，一次全关最省事） */
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Escape'&&e.keyCode!==27)return;
+  var ws=document.querySelectorAll('.jdwrap.jd-open');
+  for(var i=0;i<ws.length;i++){
+    ws[i].classList.remove('jd-open');
+    var cs=ws[i].querySelectorAll('.jcard.sel');
+    for(var k=0;k<cs.length;k++)cs[k].classList.remove('sel');
+  }
+});
+window.jdOpen=jdOpen;window.jdClose=jdClose;window.jdWrapOf=jdWrapOf;
 
 
 /* ---------- 设置面板：底色方案（attribute）× 信号色（inline）两轴正交 ----------
