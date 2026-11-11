@@ -718,6 +718,15 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px soli
 .jdp-f .btn{flex:1 1 auto;justify-content:center;min-width:84px}
 .jcard.sel{border-color:var(--pri);box-shadow:inset 3px 0 0 var(--pri)}
 .jcard.sel:hover{border-color:var(--pri);background:var(--card-2)}
+/* ---------- 可关闭筛选标签：已选条件一览，× 一键取消 ---------- */
+.fchips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.fchip{display:inline-flex;align-items:center;gap:2px;background:var(--pri-soft);border:1px solid var(--pri);
+  border-radius:var(--radius);padding:2px 3px 2px 8px;font-family:var(--mono);font-size:var(--fs-micro);
+  color:var(--txt);letter-spacing:.02em}
+.fchip-t{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fchip-x{appearance:none;background:none;border:0;color:var(--sub);cursor:pointer;font-size:14px;
+  line-height:1;padding:1px 5px;border-radius:var(--radius)}
+.fchip-x:hover{color:var(--red)}
 @media (max-width:1180px){
   .jdwrap.jd-open{grid-template-columns:minmax(0,1fr)}
   .jdp{position:static;max-height:none}
@@ -1735,6 +1744,58 @@ document.addEventListener('keydown',function(e){
   }
 });
 window.jdOpen=jdOpen;window.jdClose=jdClose;window.jdWrapOf=jdWrapOf;
+"""
+
+# 可关闭筛选标签 + 匹配度分档：从 DOM 反查已选条件（不依赖 ID 前缀，三台共用）
+FCHIPS_JS = """
+/* ---------- 匹配度分档 + 已选条件标签（× 一键取消） ---------- */
+function mtPassBand(j,band){
+  if(!band)return true;
+  var s=mtScore(j);
+  if(band==='scored')return s!=null;
+  if(band==='unscored')return s==null;
+  if(s==null)return false;
+  if(band==='80')return s>=80;
+  if(band==='60')return s>=60&&s<80;
+  if(band==='lt60')return s<60;
+  return true;
+}
+/* box：包含 .filters / .fchips / .batchChips 的容器（section）。纯 DOM 反查，改完自动触发各台监听器 */
+function fcOne(chips){
+  if(!chips)return;
+  var sec=chips.closest('section')||document;
+  var f=sec.querySelector('.filters');
+  if(!f){chips.hidden=true;return}
+  chips.innerHTML='';
+  var items=[];
+  var q=f.querySelector('input[type=search]');
+  if(q&&q.value.trim())items.push({label:'搜索：'+q.value.trim(),clear:function(){q.value='';q.dispatchEvent(new Event('input'))}});
+  Array.prototype.forEach.call(f.querySelectorAll('select'),function(s){
+    if(!s.value||!s.selectedIndex)return;
+    var t=String(s.options[s.selectedIndex].text||'');
+    if(!t||t.indexOf('全部')===0)return;
+    items.push({label:t,clear:function(){s.value='';s.dispatchEvent(new Event('change'))}});
+  });
+  var act=sec.querySelector('.batchChips .chip.active');
+  if(act&&act.getAttribute('data-mode')){
+    items.push({label:act.textContent,clear:function(){var first=sec.querySelector('.batchChips .chip[data-mode=""]');if(first)first.click()}});
+  }
+  if(!items.length){chips.hidden=true;return}
+  chips.hidden=false;
+  for(var i=0;i<items.length;i++){
+    (function(it){
+      var c=jdEl('span','fchip');
+      c.appendChild(jdEl('span','fchip-t',it.label));
+      var x=jdEl('button','fchip-x','×');x.type='button';x.setAttribute('aria-label','清除该筛选条件');
+      x.addEventListener('click',function(){it.clear();fcRender()});
+      c.appendChild(x);
+      chips.appendChild(c);
+    })(items[i]);
+  }
+}
+/* 无参：刷新全部 .fchips（合并版三个视图同时在 DOM，各自独立渲染） */
+function fcRender(){var all=document.querySelectorAll('.fchips');for(var i=0;i<all.length;i++)fcOne(all[i])}
+window.mtPassBand=mtPassBand;window.fcRender=fcRender;
 """
 
 # 匹配打分：岗位 ↔ 简历（结果只存本机）；普通字符串，禁止反斜杠转义
@@ -5526,11 +5587,14 @@ def page_autumn(urls):
     <select id="fCareer"><option value="">全部职业</option></select>
     <select id="fSt"><option value="">全部状态</option></select>
     <select id="fBatchF"><option value="">全部批次</option></select>
+    <select id="fPrioF"><option value="">全部优先级</option></select>
+    <select id="fMt"><option value="">全部匹配度</option><option value="80">强推 ≥80</option><option value="60">可投 60-79</option><option value="lt60">备选 60 以下</option><option value="scored">已打分</option><option value="unscored">未打分</option></select>
     <select id="fSort"><option value="">按截止时间</option><option value="match">按匹配度</option></select>
     <button type="button" class="btn btn-gray btn-sm mtbatch">批量打分</button>
     <button type="button" class="btn btn-gray btn-sm dmbtn">数据洞察</button>
     <button type="button" class="btn btn-gray btn-sm ragbtn">问资料库</button>
   </div>
+  <div class="fchips" id="filterChips" hidden></div>
   <div class="jmeta" id="filterHint" style="margin-bottom:8px"></div>
   <div class="cards" id="jobCards"><div class="empty">加载中…</div></div>
 </section>
@@ -5559,6 +5623,8 @@ function filteredJobs(){
     if(state.fBatchF&&bt!==state.fBatchF)return false;
     if(state.fCity&&fieldText(j,'工作地点').indexOf(state.fCity)<0)return false;
     if(state.fCareer&&fieldText(j,'岗位方向').indexOf(state.fCareer)<0)return false;
+    if(state.fPrioF){var pv=optText('优先级',typeof j['优先级']==='object'?j['优先级'].text||'':String(j['优先级']||''));if(pv!==state.fPrioF)return false}
+    if(!mtPassBand(j,state.fMt))return false;
     if(state.q){var q=state.q.toLowerCase();var hay=(plain(j['公司'])+' '+plain(j['岗位方向'])+' '+plain(j['备注'])).toLowerCase();if(hay.indexOf(q)<0)return false}
     return true;
   }).sort(function(a,b){
@@ -5612,6 +5678,7 @@ function markApplied(rec){
     function(){try{refreshAll()}catch(e){}});
 }
 function renderJobs(){
+  fcRender();
   var box=$('jobCards'),rows=filteredJobs();
   bindCardDelegate(box,'job');
   setText('jobCnt',rows.length+' 个岗位');
@@ -5648,7 +5715,7 @@ function fillSelect(selId,field,withAll){
   if(withAll){var o0=document.createElement('option');o0.value='';o0.textContent=field==='投递状态'?'全部状态':'全部批次';sel.appendChild(o0)}
   (OPTS[field]||[]).forEach(function(o){var oo=document.createElement('option');oo.value=withAll?o.text:o.id;oo.textContent=o.text;sel.appendChild(oo)});
 }
-function renderSelectOptions(){fillSelect('fBatch','批次',false);fillSelect('fPrio','优先级',false);fillSelect('fSt','投递状态',true);fillSelect('fBatchF','批次',true);}
+function renderSelectOptions(){fillSelect('fBatch','批次',false);fillSelect('fPrio','优先级',false);fillSelect('fSt','投递状态',true);fillSelect('fBatchF','批次',true);fillSelect('fPrioF','优先级',true);}
 
 function init(){
   db=window.__SMART_PAGE__&&window.__SMART_PAGE__.database;
@@ -5663,6 +5730,8 @@ function init(){
   $('fSt').addEventListener('change',function(){state.fSt=$('fSt').value;renderJobs()});
   var fso=$('fSort');if(fso)fso.addEventListener('change',function(){state.fSort=fso.value;renderJobs()});
   $('fBatchF').addEventListener('change',function(){state.fBatchF=$('fBatchF').value;renderJobs()});
+  $('fPrioF').addEventListener('change',function(){state.fPrioF=$('fPrioF').value;renderJobs()});
+  $('fMt').addEventListener('change',function(){state.fMt=$('fMt').value;renderJobs()});
   $('fCity').addEventListener('change',function(){state.fCity=$('fCity').value;renderJobs()});
   $('fCareer').addEventListener('change',function(){state.fCareer=$('fCareer').value;renderJobs()});
   Array.prototype.forEach.call(document.querySelectorAll('#batchChips .chip'),function(ch){
@@ -5710,11 +5779,13 @@ def page_soe(urls):
     <select id="fCity"><option value="">全部城市</option></select>
     <select id="fCareer"><option value="">全部职业</option></select>
     <select id="fSt"><option value="">全部状态</option></select>
+    <select id="fMt"><option value="">全部匹配度</option><option value="80">强推 ≥80</option><option value="60">可投 60-79</option><option value="lt60">备选 60 以下</option><option value="scored">已打分</option><option value="unscored">未打分</option></select>
     <select id="fSort"><option value="">按截止时间</option><option value="match">按匹配度</option></select>
     <button type="button" class="btn btn-gray btn-sm mtbatch">批量打分</button>
     <button type="button" class="btn btn-gray btn-sm dmbtn">数据洞察</button>
     <button type="button" class="btn btn-gray btn-sm ragbtn">问资料库</button>
   </div>
+  <div class="fchips" id="filterChips" hidden></div>
   <div class="jmeta" id="filterHint" style="margin-bottom:8px"></div>
   <div class="cards" id="jobCards"><div class="empty">加载中…</div></div>
 </section>
@@ -5739,6 +5810,7 @@ function filteredSOE(){
     var st=jobStatus(j);if(state.fSt&&st!==state.fSt)return false;
     if(state.fCity&&fieldText(j,'工作地点').indexOf(state.fCity)<0)return false;
     if(state.fCareer&&fieldText(j,'岗位方向').indexOf(state.fCareer)<0)return false;
+    if(!mtPassBand(j,state.fMt))return false;
     if(state.q){var q=state.q.toLowerCase();var hay=(plain(j['公司'])+' '+plain(j['岗位方向'])+' '+plain(j['备注'])).toLowerCase();if(hay.indexOf(q)<0)return false}
     return true;
   }).sort(function(a,b){
@@ -5784,6 +5856,7 @@ function markApplied(rec){
     function(){try{refreshAll()}catch(e){}});
 }
 function renderJobs(){
+  fcRender();
   var box=$('jobCards'),rows=filteredSOE();
   bindCardDelegate(box,'job');
   setText('jobCnt',rows.length+' 家');
@@ -5827,6 +5900,7 @@ function init(){
   var fso=$('fSort');if(fso)fso.addEventListener('change',function(){state.fSort=fso.value;renderJobs()});
   $('fCity').addEventListener('change',function(){state.fCity=$('fCity').value;renderJobs()});
   $('fCareer').addEventListener('change',function(){state.fCareer=$('fCareer').value;renderJobs()});
+  $('fMt').addEventListener('change',function(){state.fMt=$('fMt').value;renderJobs()});
   DB_READY=function(){return initSchema(function(){renderSelectOptions()})};
   DB_READY().catch(function(e){console.error('[database] 初始化失败:'+((e&&e.message)||String(e)));goOffline()});
 }
@@ -5895,11 +5969,13 @@ def page_intern(urls):
   <div class="filters">
     <input id="q" type="search" placeholder="搜公司 / 岗位">
     <select id="fSt"><option value="">全部状态</option></select>
+    <select id="fMt"><option value="">全部匹配度</option><option value="80">强推 ≥80</option><option value="60">可投 60-79</option><option value="lt60">备选 60 以下</option><option value="scored">已打分</option><option value="unscored">未打分</option></select>
     <select id="fSort"><option value="">按公司</option><option value="match">按匹配度</option></select>
     <button type="button" class="btn btn-gray btn-sm mtbatch">批量打分</button>
     <button type="button" class="btn btn-gray btn-sm dmbtn">数据洞察</button>
     <button type="button" class="btn btn-gray btn-sm ragbtn">问资料库</button>
   </div>
+  <div class="fchips" id="filterChips" hidden></div>
   <div class="jmeta" id="filterHint" style="margin-bottom:8px"></div>
   <div class="cards" id="jobCards"><div class="empty">加载中…</div></div>
 </section>
@@ -5922,6 +5998,7 @@ def page_intern(urls):
 function filteredInterns(){
   return state.interns.filter(function(i){
     var st=jobStatus(i);if(state.fSt&&st!==state.fSt)return false;
+    if(!mtPassBand(i,state.fMt))return false;
     if(state.q){var q=state.q.toLowerCase();var hay=(plain(i['公司'])+' '+plain(i['岗位名称'])+' '+plain(i['备注'])).toLowerCase();if(hay.indexOf(q)<0)return false}
     return true;
   }).sort(function(a,b){
@@ -5929,6 +6006,7 @@ function filteredInterns(){
     var c=plain(a['公司']);var cc=plain(b['公司']);return c<cc?-1:1});
 }
 function renderInterns(){
+  fcRender();
   var box=$('jobCards'),rows=filteredInterns();
   bindCardDelegate(box,'intern');
   setText('jobCnt',rows.length+' 条');
@@ -5982,6 +6060,7 @@ function init(){
   $('lnkModal').addEventListener('click',function(e){if(e.target===$('lnkModal'))$('lnkModal').style.display='none'});
   $('q').addEventListener('input',function(){var el=this;dbnc(el,function(){state.q=el.value.trim();renderInterns()})});
   $('fSt').addEventListener('change',function(){state.fSt=$('fSt').value;renderInterns()});
+  $('fMt').addEventListener('change',function(){state.fMt=$('fMt').value;renderInterns()});
   var fso=$('fSort');if(fso)fso.addEventListener('change',function(){state.fSort=fso.value;renderInterns()});
   DB_READY=function(){return initSchema(function(){renderSelectOptions()})};
   DB_READY().catch(function(e){console.error('[database] 初始化失败:'+((e&&e.message)||String(e)));goOffline()});
@@ -6009,7 +6088,7 @@ def _wrap_page(title, body, nav, page_js, urls, active, hero=''):
             "if(_loadRetry<1){_loadRetry++;return new Promise(function(ok){setTimeout(ok,1500)}).then(loadData)}"
             "_loadRetry=0;_syncFailed=true;setSync('warn');return Promise.reject(e)});return _loadP}\n"
             "function reloadAll(){return loadData().then(function(){refreshAll()},function(){refreshAll()});}\n")
-    js = "(function(){\n'use strict';\n" + SHARED_JS + "\n" + PERF_JS + "\n" + JDPANEL_JS + "\n" + THEME_JS + "\n" + AI_CORE_JS + "\n" + AGTUNE_JS + "\n" + MATCH_JS + "\n" + AI_PLUS_JS + "\n" + DM_JS + "\n" + RAG_JS + "\n" + APPLY_JS + "\n" + NAVSEC_JS + "\n" + RSPDF_JS + "\n"
+    js = "(function(){\n'use strict';\n" + SHARED_JS + "\n" + PERF_JS + "\n" + JDPANEL_JS + "\n" + FCHIPS_JS + "\n" + THEME_JS + "\n" + AI_CORE_JS + "\n" + AGTUNE_JS + "\n" + MATCH_JS + "\n" + AI_PLUS_JS + "\n" + DM_JS + "\n" + RAG_JS + "\n" + APPLY_JS + "\n" + NAVSEC_JS + "\n" + RSPDF_JS + "\n"
     js += "var PAGE_URLS={overview:'%s',autumn:'%s',soe:'%s',intern:'%s'};\n" % (urls["overview"], urls["autumn"], urls["soe"], urls["intern"])
     js += fetch_jobs + fetch_apps + fetch_ints + fetch_inbx + load + page_js + "\nif(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init)}else{init()}\n})();"
 
